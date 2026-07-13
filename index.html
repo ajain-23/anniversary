@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A Dream Come True</title>
+  <link rel="icon" type="image/png" href="/assets/sprites/lily.png" />
+  <link rel="apple-touch-icon" href="/assets/sprites/lily.png" />
+  <!-- Critical inline CSS: paints the dark background and HIDES the DOM overlay
+       markup immediately, so the raw HTML (HUD text, boxes) doesn't flash before
+       ui.css + the JS bundle load. main.js adds class "ready" to <html> once the
+       game has booted, fading the content in. -->
+  <style>
+    html, body { margin: 0; height: 100%; background: #0c0b12; }
+    #game-root { opacity: 0; }
+    html.ready #game-root { opacity: 1; transition: opacity 240ms ease; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Quicksand:wght@400;500;600;700&family=Caveat:wght@400;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="game-root">
+    <div id="game-canvas"></div>
+
+    <!-- HUD -->
+    <div id="hud-left">
+      <div id="counter">memories: 0/12</div>
+      <div id="album-toggle">album (tab)</div>
+    </div>
+    <div id="mute-toggle">♪ on (m)</div>
+    <div id="verb-prompt" class="hidden">press SPACE</div>
+
+    <!-- Intro (eyes open) -->
+    <div id="intro-black" class="hidden"><div id="intro-text"></div></div>
+
+    <!-- Dialogue -->
+    <div id="dialogue" class="hidden">
+      <div id="dialogue-speaker"></div>
+      <div id="dialogue-text"></div>
+      <div id="dialogue-hint">space</div>
+    </div>
+
+    <!-- Memory reveal -->
+    <div id="memory-reveal" class="hidden">
+      <div class="memory-frame">
+        <img id="memory-photo" alt="memory" />
+        <div id="memory-caption"></div>
+      </div>
+      <div id="memory-hint">space to keep walking</div>
+    </div>
+
+    <!-- Album gallery -->
+    <div id="album" class="hidden">
+      <div id="album-title">Memories</div>
+      <div id="album-grid"></div>
+      <div id="album-empty-note" class="hidden">nothing yet, keep exploring!</div>
+      <div id="album-hint">click a photo · esc to close</div>
+    </div>
+
+    <!-- Lightbox (click-through) -->
+    <div id="lightbox" class="hidden">
+      <img id="lightbox-img" alt="" />
+      <div id="lightbox-cap"></div>
+      <div id="lightbox-hint">← → to browse · esc to close</div>
+    </div>
+
+    <!-- Finale letter: paper + photo side by side (photo is OUTSIDE the paper) -->
+    <div id="letter" class="hidden">
+      <div class="letter-spread">
+        <div class="letter-paper">
+          <div id="letter-body"></div>
+        </div>
+        <img id="letter-photo" alt="us" />
+      </div>
+      <div id="letter-hint">space to close</div>
+    </div>
+
+    <!-- Wordless end -->
+    <div id="end-screen" class="hidden">
+      <!-- Memory photos framing the center (populated at runtime from the album). -->
+      <div id="end-frame" aria-hidden="true"></div>
+      <div class="end-inner">
+        <div class="end-pair"><span class="end-kirby"></span><span class="end-snoopy"></span></div>
+        <div id="the-end" class="hidden">
+          <div class="the-end-line">the end<span class="end-heart"></span></div>
+          <div class="the-end-sub">press space to return</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

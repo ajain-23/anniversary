@@ -1,0 +1,55 @@
+// DialogueManager — drives the HTML dialogue box with typewriter + 3 voices.
+export class DialogueManager {
+  constructor() {
+    this.box = document.getElementById("dialogue");
+    this.speakerEl = document.getElementById("dialogue-speaker");
+    this.textEl = document.getElementById("dialogue-text");
+    this.typing = false;
+    this._full = "";
+    this._timer = null;
+  }
+
+  // returns a Promise that resolves when the player advances past this line
+  show(text, who = "npc", name = "") {
+    return new Promise((resolve) => {
+      this.box.className = ""; // reset
+      this.box.classList.add(`speaker-${who}`);
+      this.speakerEl.textContent = name || (who === "guide" ? "" : "");
+      this.box.classList.remove("hidden");
+
+      this._full = text;
+      this.textEl.textContent = "";
+      this.typing = true;
+      const shownAt = performance.now();
+      let i = 0;
+      clearInterval(this._timer);
+      this._timer = setInterval(() => {
+        this.textEl.textContent = this._full.slice(0, ++i);
+        if (i >= this._full.length) {
+          clearInterval(this._timer);
+          this.typing = false;
+        }
+      }, 22);
+
+      const advance = () => {
+        // ignore presses in the first 250ms (prevents carryover skips)
+        if (performance.now() - shownAt < 250) return;
+        if (this.typing) {
+          // first press: finish typing instantly
+          clearInterval(this._timer);
+          this.textEl.textContent = this._full;
+          this.typing = false;
+          return;
+        }
+        window.removeEventListener("keydown", onKey);
+        resolve();
+      };
+      const onKey = (e) => {
+        if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); advance(); }
+      };
+      window.addEventListener("keydown", onKey);
+    });
+  }
+
+  hide() { this.box.classList.add("hidden"); }
+}

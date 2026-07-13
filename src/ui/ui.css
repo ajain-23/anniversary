@@ -1,0 +1,521 @@
+:root {
+  --pink: #ff9ecb;         /* the guide (him) */
+  --pink-glow: #ffb8db;
+  --white: #f3eee7;        /* NPCs */
+  --gold: #ffd98a;         /* her own recovered memory */
+  --ink: #2a2431;
+  --box-bg: linear-gradient(180deg, rgba(38,32,52,0.94), rgba(26,22,38,0.96));
+  --box-border: #6b5c8a;
+  --pixel: "VT323", ui-monospace, monospace;
+  --soft: "Quicksand", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: #0c0b12;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--soft);
+}
+
+#game-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 120% at 50% 30%, #14101f 0%, #0a0810 70%, #050408 100%);
+}
+
+/* RESIZE scale mode: the canvas fills the whole window (no letterbox). */
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+#game-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* soft vignette over everything for mood */
+#game-root::after {
+  content: "";
+  position: absolute; inset: 0; pointer-events: none; z-index: 60;
+  box-shadow: inset 0 0 180px 40px rgba(0,0,0,0.55);
+}
+
+#game-canvas canvas { image-rendering: pixelated; }
+
+/* ---- Custom lily cursor + falling-leaf trail (see ui/CursorTrail.js) ---- */
+/* Hide the native cursor everywhere once the lily cursor is active. */
+body.lily-cursor,
+body.lily-cursor * { cursor: none !important; }
+
+#cursor-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;           /* above the vignette (z 60) and every UI overlay */
+  pointer-events: none;    /* never intercepts clicks */
+  overflow: hidden;
+  transition: opacity 160ms ease;
+}
+
+#cursor-lily,
+.cursor-leaf {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  will-change: transform, opacity;
+  image-rendering: auto;   /* these sprites are hi-res, not pixel-art tiles */
+}
+
+#cursor-lily {
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35));
+  z-index: 2;
+}
+
+.cursor-leaf {
+  opacity: 0;              /* hidden until spawned */
+  z-index: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+}
+
+/* ---- Secret Kirby peek (DOM overlay, see ui/PeekKirby.js) ---- */
+#peek-kirby {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 58;              /* above game, just under the vignette (60) + cursor */
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  visibility: hidden;       /* shown only during a peek */
+  transform: translate(-9999px, -9999px);
+  image-rendering: auto;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
+}
+
+.hidden { display: none !important; }
+
+/* ---------- Dialogue box ---------- */
+#dialogue {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  transform: translateX(-50%);
+  width: min(720px, 90vw);
+  background: var(--box-bg);
+  border: 2px solid var(--box-border);
+  border-radius: 18px;
+  padding: 16px 26px 20px;
+  color: var(--white);
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  z-index: 20;
+  animation: boxIn 0.28s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes boxIn { from{ opacity:0; transform:translate(-50%, 14px);} to{ opacity:1; transform:translate(-50%,0);} }
+
+#dialogue-speaker {
+  font-family: var(--soft);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 6px;
+  min-height: 14px;
+}
+
+#dialogue-text {
+  font-family: var(--pixel);
+  font-size: 30px;
+  line-height: 1.25;
+  min-height: 66px;
+  white-space: pre-wrap;
+  letter-spacing: 0.4px;
+}
+
+#dialogue-hint {
+  text-align: right;
+  font-family: var(--soft);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.4;
+  margin-top: 6px;
+  animation: blink 1.4s infinite;
+}
+@keyframes blink { 0%,100%{opacity:.15} 50%{opacity:.55} }
+
+/* speaker voices */
+.speaker-guide #dialogue-text {
+  color: var(--pink);
+  text-shadow: 0 0 10px rgba(255,158,203,0.45);
+}
+.speaker-guide { border-color: #a86b9a; }
+.speaker-guide #dialogue-speaker::before { content: "♥ "; opacity:.7; }
+.speaker-npc   #dialogue-text { color: var(--white); }
+.speaker-memory #dialogue-text {
+  color: var(--gold);
+  font-style: italic;
+  text-shadow: 0 0 12px rgba(255,217,138,0.35);
+}
+.speaker-memory { border-color: #b9973f; }
+
+/* ---------- Memory reveal (polaroid) ---------- */
+#memory-reveal {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 120% at 50% 40%, rgba(20,14,28,0.92), rgba(6,5,10,0.98));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  animation: fadein 1.0s ease;
+}
+@keyframes fadein { from{opacity:0} to{opacity:1} }
+
+.memory-frame {
+  position: relative;
+  background: linear-gradient(180deg,#fffdf8,#f3ece0);
+  padding: 16px 16px 52px;
+  border-radius: 3px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.65), 0 2px 0 rgba(0,0,0,0.1);
+  transform: rotate(-2deg);
+  animation: photoIn 0.7s cubic-bezier(.2,.8,.3,1.2);
+}
+@keyframes photoIn { from{ opacity:0; transform: rotate(-2deg) scale(.9) translateY(20px);} to{ opacity:1; transform: rotate(-2deg) scale(1) translateY(0);} }
+/* tape on the corners */
+.memory-frame::before, .memory-frame::after {
+  content:""; position:absolute; width:66px; height:24px;
+  background: rgba(255,255,255,0.35);
+  border: 1px solid rgba(0,0,0,0.06);
+  top:-10px;
+}
+.memory-frame::before { left:-14px; transform: rotate(-28deg); }
+.memory-frame::after  { right:-14px; transform: rotate(28deg); }
+
+#memory-photo {
+  display: block;
+  /* Fit within BOTH width and height so tall portraits don't spill off-screen. width is the
+     cap for landscape shots; max-height caps portraits (leaving room for the caption below). */
+  width: auto; height: auto;
+  max-width: min(520px, 62vw);
+  max-height: 68vh;
+  border-radius: 1px;
+  background: #ddd;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+}
+#memory-caption {
+  position:absolute; left:0; right:0; bottom:16px;
+  color: #4a4038;
+  font-family: var(--pixel);
+  font-size: 22px;
+  text-align: center;
+  padding: 0 12px;
+}
+#memory-hint {
+  color: var(--gold);
+  font-family: var(--soft);
+  letter-spacing: 2px; text-transform: uppercase; font-size: 11px;
+  margin-top: 30px; opacity: 0.7;
+  animation: blink 1.4s infinite;
+}
+
+/* ---------- Album ---------- */
+/* The whole album must fit the viewport with NO scroll. Flex column: title / grid / hint, with
+   the grid taking the middle and its cells sized by viewport HEIGHT so 3 rows always fit. */
+#album {
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 120% at 50% 30%, rgba(24,16,32,0.97), rgba(8,6,12,0.99));
+  z-index: 40; padding: 3vh 5vw; color: var(--gold);
+  overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+#album-title { font-family: var(--soft); font-weight:700; font-size: 22px; letter-spacing: 6px; margin-bottom: 2vh; text-transform: uppercase; opacity:.85; flex: 0 0 auto; }
+/* Fixed 4 columns (12 photos → 4×3 rows). Cells are sized off VIEWPORT HEIGHT (--cellw) so all
+   three rows fit without scrolling; the whole grid is width-capped + centered. */
+#album-grid {
+  --cellw: min(270px, 15vw, 29vh);
+  display: grid; grid-template-columns: repeat(4, var(--cellw));
+  gap: 2vh 1.6vw; align-items: start; justify-content: center;
+  flex: 0 1 auto; min-height: 0;
+}
+@media (max-width: 640px) {
+  #album-grid { --cellw: min(38vw, 30vh); grid-template-columns: repeat(2, var(--cellw)); }
+}
+.album-item {
+  background: linear-gradient(180deg,#fffdf8,#f1e9db);
+  padding: 7px 7px 3px; border-radius: 3px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  transform: rotate(var(--r, -1deg));
+  transition: transform .18s ease;
+  /* Flex column so the caption sits in-flow BELOW the photo (never overlapping it). */
+  display: flex; flex-direction: column;
+}
+.album-item:hover { transform: rotate(0deg) scale(1.03); z-index:2; }
+/* Every thumbnail is a uniform 4:3 window; photos are cover-cropped to fill it, so landscape
+   and portrait shots all read as the same tidy polaroid (no white gaps). */
+.album-item img {
+  width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: center;
+  display: block; border-radius: 1px; background:#e7ddcd;
+}
+.album-item .cap {
+  color:#4a4038; font-family:var(--pixel); font-size:16px; line-height:1.15; text-align:center;
+  padding: 6px 4px; min-height: 1.15em;
+  /* Center the caption (1 or 2 lines) vertically within its space. The inner clamp span handles
+     the 2-line truncation; the outer flexbox centers it. */
+  display: flex; align-items: center; justify-content: center;
+}
+.album-item .cap span {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+/* Empty slot: same polaroid footprint, but a dark recessed "impression" where the photo will go
+   (no caption, not interactive). Slightly dimmed + no hover pop so it reads as "not yet". */
+.album-item-empty { cursor: default; opacity: 0.72; }
+.album-item-empty:hover { transform: rotate(var(--r, -1deg)); }
+.album-impression {
+  width: 100%; aspect-ratio: 4 / 3; border-radius: 1px;
+  background:
+    radial-gradient(120% 120% at 50% 40%, rgba(0,0,0,0.15), rgba(0,0,0,0.42));
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(0,0,0,0.25);
+  /* A slim spacer under the impression (roughly a one-line caption's worth) so empty and filled
+     cells in the same row still align without leaving a big blank bar. */
+  margin-bottom: 0.95em;
+}
+/* "nothing yet" note, aligned with the title/hint (in-flow, below the grid). */
+#album-empty-note {
+  margin-top: 2vh; text-align: center; font-family: var(--pixel); font-size: 20px;
+  font-style: italic; opacity: 0.6; flex: 0 0 auto;
+}
+#album-hint { margin-top: 2vh; font-family:var(--soft); font-size: 11px; letter-spacing:2px; text-transform:uppercase; opacity: 0.5; flex: 0 0 auto; }
+
+#album-toggle {
+  position: absolute; top: 14px; right: 18px;
+  color: var(--gold); font-family: var(--soft);
+  font-size: 16px; letter-spacing: 2px; text-transform: uppercase;
+  opacity: 0.5; z-index: 15;
+}
+
+/* ---------- HUD ---------- */
+#counter {
+  position: absolute; top: 14px; left: 18px;
+  color: var(--gold); font-family: var(--soft);
+  font-size: 20px; letter-spacing: 1px; z-index: 15;
+}
+#mute-toggle {
+  position: absolute; top: 40px; right: 18px;
+  color: var(--gold); font-family: var(--soft); font-size: 16px;
+  letter-spacing: 1px; opacity: 1; z-index: 15; cursor: pointer;
+}
+#verb-prompt {
+  position: absolute; left: 50%; top: 62%; transform: translateX(-50%);
+  color: #14101f; background: var(--gold); font-family: var(--soft); font-weight: 700;
+  font-size: 14px; letter-spacing: 1px; padding: 8px 16px; border-radius: 20px;
+  z-index: 22; box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  animation: bob 1s ease-in-out infinite;
+}
+@keyframes bob { 0%,100%{ transform: translateX(-50%) translateY(0);} 50%{ transform: translateX(-50%) translateY(-4px);} }
+
+/* ---------- Lightbox ---------- */
+#lightbox {
+  position: absolute; inset: 0; z-index: 45;
+  background: rgba(6,5,10,0.94);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+#lightbox-img {
+  max-width: 78vw; max-height: 72vh; border: 12px solid #fff; border-radius: 3px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6); background:#ddd;
+}
+#lightbox-cap { color: var(--gold); font-family: var(--pixel); font-size: 22px; margin-top: 14px; }
+#lightbox-hint { color:#fff; opacity:.5; font-family:var(--soft); font-size:12px; margin-top: 10px; letter-spacing:2px; text-transform:uppercase; }
+
+/* ---------- Finale letter ---------- */
+#letter {
+  position: absolute; inset: 0; z-index: 50;
+  background: radial-gradient(120% 120% at 50% 30%, rgba(30,20,10,0.9), rgba(6,5,10,0.98));
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  animation: fadein 1.4s ease;
+}
+/* Letter = the paper (text only) with the photo sitting OUTSIDE it, to the right. */
+.letter-spread {
+  display: flex; flex-direction: row; align-items: center; justify-content: center;
+  gap: 28px; max-width: 96vw;
+}
+.letter-paper {
+  width: min(600px, 60vw); max-height: 88vh; overflow-y: auto;
+  background: linear-gradient(180deg,#fdf6e3,#f3e7c9);
+  padding: 34px 40px; border-radius: 4px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  color: #4a3b28; font-family: "Caveat", cursive; font-size: 22px; line-height: 1.38;
+  transform: rotate(-0.6deg);
+}
+.letter-paper p { margin-bottom: 10px; }
+#letter-photo {
+  flex: 0 0 auto; align-self: center;
+  width: min(320px, 30vw); border: 8px solid #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3); border-radius: 2px; background:#ddd;
+}
+/* Narrow screens: stack photo under the paper. */
+@media (max-width: 720px) {
+  .letter-spread { flex-direction: column; gap: 16px; }
+  .letter-paper { width: min(560px, 88vw); }
+  #letter-photo { width: 60%; }
+}
+#letter-hint { color: var(--gold); font-family: var(--soft); font-size: 12px; margin-top: 20px; opacity: 0.7; letter-spacing:2px; text-transform:uppercase; animation: blink 1.4s infinite; }
+
+/* ---------- Wordless end ---------- */
+#end-screen {
+  position: absolute; inset: 0; z-index: 40;
+  background: radial-gradient(120% 120% at 50% 40%, #ffe3b0, #f6c98a 60%, #e8a86a 100%);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadein 2s ease;
+}
+
+/* ---- Memory photo frame (12 collected photos spread evenly around the perimeter) ---- */
+#end-frame {
+  position: absolute; inset: 0; z-index: 41; pointer-events: none;
+  animation: fadein 2.4s ease;
+}
+/* Each photo is absolutely positioned by its CENTER (left/top set in JS as % points
+   around the perimeter), then pulled back by -50%,-50% and tilted. Scrapbook look:
+   white border, soft shadow, gentle alternating tilt. Clickable → opens the lightbox
+   (the frame itself stays click-through so it doesn't block "space to return"). */
+#end-frame .ef-photo {
+  position: absolute;
+  width: clamp(96px, 11vw, 150px);
+  aspect-ratio: 1 / 1;
+  background: #fff;
+  padding: 6px 6px 15px;
+  border-radius: 3px;
+  box-shadow: 0 7px 18px rgba(60,40,20,0.30);
+  transform: translate(-50%, -50%) rotate(var(--r, 0deg));
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+#end-frame .ef-photo:hover {
+  transform: translate(-50%, -50%) rotate(var(--r, 0deg)) scale(1.06);
+  box-shadow: 0 10px 24px rgba(60,40,20,0.38);
+  z-index: 2;
+}
+#end-frame .ef-photo img {
+  display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 2px;
+}
+
+.end-pair { display: flex; gap: 16px; align-items: flex-end; }
+/* Snoopy + Kirby sprites. Both use background-image with pixelated scaling so the pixel
+   art stays crisp when enlarged. Snoopy is a single frame (idle DOWN, frame 0) carved out
+   of the walk sheet by background-position + explicit size — must match SNOOPY_FRAMES[0]
+   in WorldScene.js: {x:5, y:162, w:39, h:61}. Kirby is the whole raw sprite (raw 514x412,
+   opaque bbox ~438x392, near-zero padding) — box aspect follows raw so alignment is exact. */
+.end-snoopy, .end-kirby {
+  display: block;
+  image-rendering: pixelated;
+  -webkit-user-select: none; user-select: none;
+}
+.end-snoopy {
+  /* Height 90 → scale 90/61 ≈ 1.475; width = 39×1.475 ≈ 57.5. Position + size are scaled
+     from the source frame (5,162,39,61) by the same factor: position -7.4, -239, size 940×578. */
+  width: 57.5px; height: 90px;
+  background-image: url("../assets/sprites/snoopy.png");
+  background-repeat: no-repeat;
+  background-size: 940px 578px;        /* 637 × 1.475, 392 × 1.475 */
+  background-position: -7.4px -239px;  /* -5 × 1.475, -162 × 1.475 */
+}
+.end-kirby {
+  /* Kirby target opaque-height 72 (0.8x Snoopy's 90). Opaque is 392/412 of raw height, so
+     raw height = 72 × 412/392 ≈ 75.7. Aspect (raw) 514/412 → width ≈ 94.5. */
+  width: 94.5px; height: 75.7px;
+  background-image: url("../assets/sprites/kirby.png");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+/* Heart accent beside the "the end" words (near-square, opaque 420x420). Sized to the
+   text and vertically centered on it; a gentle pulse keeps it alive. */
+.the-end-line { display: inline-flex; align-items: center; gap: 12px; }
+.end-heart {
+  display: inline-block;
+  image-rendering: pixelated;
+  -webkit-user-select: none; user-select: none;
+  width: 34px; height: 34px;
+  background-image: url("../assets/sprites/heart.png");
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.18));
+  animation: end-heart-pulse 1.6s ease-in-out infinite;
+}
+@keyframes end-heart-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
+/* ---------- HUD grouping (both sides aligned to the same top edge) ---------- */
+/* Single shared pill wraps BOTH the counter and the album toggle. */
+#hud-left {
+  position: absolute; top: 18px; left: 20px; z-index: 15;
+  display:flex; flex-direction:column; gap:9px; align-items:flex-start;
+  background: rgba(20,16,30,0.55); padding: 9px 14px; border-radius: 12px;
+}
+#hud-left #counter { position: static; }
+#hud-left #album-toggle { position: static; top:auto; right:auto; }
+
+/* Right-side mute matches the left group's top edge + inset for alignment. */
+#mute-toggle { position: absolute; top: 18px; right: 20px; }
+
+/* ---------- Intro (eyes open) ---------- */
+#intro-black {
+  position: absolute; inset: 0; background: #000; z-index: 70;
+  display: flex; align-items: center; justify-content: center;
+}
+#intro-text {
+  color: #cfc6dd; font-family: "VT323", monospace; font-size: 34px; letter-spacing: 3px;
+  opacity: 0.85;
+  /* Constrain the line length so the longer intro phrases wrap into a tidy centered block
+     instead of spilling edge-to-edge. */
+  max-width: 58ch; width: min(58ch, 92vw); text-align: center; line-height: 1.5;
+  text-wrap: balance;
+}
+
+/* ---------- The End ---------- */
+#the-end {
+  margin-top: 30px; color: #6b4a2f; font-family: "Caveat", cursive; font-size: 40px;
+  text-align: center; animation: fadein 2s ease;
+}
+.the-end-sub { font-family: "Quicksand", sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.6; margin-top: 8px; }
+.end-inner { display:flex; flex-direction:column; align-items:center; }
+
+/* ---------- Wayfinder arrow (points to the next destination) ---------- */
+#wayfinder {
+  position: fixed; top: 0; left: 0; z-index: 57; /* above game, below peek(58)/vignette(60)/cursor */
+  pointer-events: none; -webkit-user-select: none; user-select: none;
+  color: var(--gold);
+  transform-origin: center center;
+  filter: drop-shadow(0 0 6px rgba(255, 217, 138, 0.6));
+  opacity: 0; transition: opacity .35s ease;
+  animation: wayfinder-pulse 1.6s ease-in-out infinite;
+}
+@keyframes wayfinder-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(255, 217, 138, 0.45)); }
+  50%      { filter: drop-shadow(0 0 9px rgba(255, 217, 138, 0.85)); }
+}
+
+/* ---------- Debug mode (dev tools) ---------- */
+.debug-btn {
+  font: 11px ui-monospace, monospace; color: #fff;
+  background: #3a2f52; border: 1px solid #6b5c8a; border-radius: 6px;
+  padding: 3px 6px; cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, transform .06s ease;
+}
+.debug-btn:hover { background: #55457a; border-color: #a892d6; }
+.debug-btn:active { background: #6b5c8a; transform: translateY(1px); }
