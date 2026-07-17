@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Game viewport: lock zoom so tap-to-advance / double-taps don't pinch-zoom the
+       page, and extend under the notch (safe-area insets are applied to the touch
+       controls in ui.css). -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>A Dream Come True</title>
   <link rel="icon" type="image/png" href="/assets/sprites/lily.png" />
   <link rel="apple-touch-icon" href="/assets/sprites/lily.png" />
@@ -53,6 +56,7 @@
 
     <!-- Album gallery -->
     <div id="album" class="hidden">
+      <button id="album-close" class="touch-ui-btn" aria-label="close">✕</button>
       <div id="album-title">Memories</div>
       <div id="album-grid"></div>
       <div id="album-empty-note" class="hidden">nothing yet, keep exploring!</div>
@@ -61,7 +65,10 @@
 
     <!-- Lightbox (click-through) -->
     <div id="lightbox" class="hidden">
+      <button id="lightbox-close" class="touch-ui-btn" aria-label="close">✕</button>
+      <button id="lightbox-prev" class="touch-ui-btn lightbox-nav" aria-label="previous">‹</button>
       <img id="lightbox-img" alt="" />
+      <button id="lightbox-next" class="touch-ui-btn lightbox-nav" aria-label="next">›</button>
       <div id="lightbox-cap"></div>
       <div id="lightbox-hint">← → to browse · esc to close</div>
     </div>

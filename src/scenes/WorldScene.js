@@ -8,10 +8,15 @@ import { Wayfinder } from "../ui/Wayfinder.js";
 // The delivered map is 16px tiles; we render at native size and get the "2x" look via camera
 // zoom (see create()). TILE is the on-map tile size in px used by all cell<->pixel math.
 const TILE = TILE_PX; // 16
-// Adaptive camera zoom target: how many map tiles wide the view should show,
-// regardless of window size. Lower = more zoomed in. (Old fixed zoom 1.7 showed
-// ~24 wide on the 640px canvas; ~22 reads a touch closer/cozier.)
+// Adaptive camera zoom target: how many map tiles the view should show, regardless
+// of window size. Lower = more zoomed in. (Old fixed zoom 1.7 showed ~24 wide on the
+// 640px canvas; ~22 reads a touch closer/cozier.)
+// We target BOTH a tiles-WIDE and a tiles-TALL budget and take the MORE zoomed-in of
+// the two, so a narrow/portrait screen (phone) doesn't end up showing a huge vertical
+// span of tiny tiles — it stays cozy like the widescreen view. On a wide desktop the
+// width budget wins (unchanged look); on a tall phone the height budget kicks in.
 const TARGET_TILES_WIDE = 18;
+const TARGET_TILES_TALL = 15;
 const MIN_ZOOM = 1.2;
 const MAX_ZOOM = 4.5;
 // Player collision body is a square of half-extent PLAYER_HALF px (so ~10px
@@ -232,6 +237,7 @@ export class WorldScene extends Phaser.Scene {
     this.dialogue = data.dialogue; this.album = data.album;
     this.letter = data.letter; this.audio = data.audio;
     this.peek = data.peek;
+    this.touch = data.touch; // virtual joystick + action button (null on non-touch)
   }
 
   preload() {
@@ -357,6 +363,14 @@ export class WorldScene extends Phaser.Scene {
     this.wayfinder = new Wayfinder();
     this.wayfinder.init();
     this.events.once("shutdown", () => this.wayfinder?.hide());
+
+    // Touch: make the floating "tap to open / tap to <verb>" prompt the tap trigger.
+    this._wirePromptTap();
+
+    // Touch controls (joystick) belong to the WORLD only — mark the body so CSS shows
+    // the touch layer here and hides it on the title/other scenes. Cleared on shutdown.
+    document.body.classList.add("world-active");
+    this.events.once("shutdown", () => document.body.classList.remove("world-active"));
   }
 
   // The first not-yet-completed encounter in STORY_ORDER (its tile pos), or null if all done.
@@ -716,11 +730,17 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  // Sets camera zoom so the view shows ~TARGET_TILES_WIDE tiles across the
-  // current canvas width (clamped). Called on create + on every resize.
+  // Sets camera zoom from BOTH a tiles-wide and tiles-tall budget, taking the more
+  // zoomed-in (larger) of the two so neither dimension shows too much of the world.
+  // On a wide desktop the width budget dominates (look unchanged); on a tall/narrow
+  // phone the height budget dominates, keeping the scene cozy instead of tiny.
+  // Called on create + on every resize.
   _applyZoom() {
     const w = this.scale.width || this.cameras.main.width;
-    const zoom = w / (TARGET_TILES_WIDE * TILE);
+    const h = this.scale.height || this.cameras.main.height;
+    const zoomW = w / (TARGET_TILES_WIDE * TILE);
+    const zoomH = h / (TARGET_TILES_TALL * TILE);
+    const zoom = Math.max(zoomW, zoomH);
     this.cameras.main.setZoom(Phaser.Math.Clamp(zoom, MIN_ZOOM, MAX_ZOOM));
   }
 
@@ -966,7 +986,12 @@ export class WorldScene extends Phaser.Scene {
     this.audio?.playMusic("title");
     await this.dialogue.show("There you are. Take your time. You've been asleep a long while.", "guide");
     await this.dialogue.show("You don't remember anything right now. That's alright – that's what this journey is for.", "guide");
-    await this.dialogue.show("Go on. Explore with the W A S D keys. The small golden arrow will help guide you to your memories. Every memory you collect will be added to your album (top left), which you can check anytime with the TAB key.", "guide");
+    // Controls copy adapts to the input device (keyboard vs. touch).
+    const isTouch = !!(this.touch && this.touch.active);
+    const controlsLine = isTouch
+      ? "Go on. Use the stick on the left to walk. The small golden arrow will help guide you to your memories. Every memory you collect will be added to your album (top left), which you can open anytime."
+      : "Go on. Explore with the W A S D keys. The small golden arrow will help guide you to your memories. Every memory you collect will be added to your album (top left), which you can check anytime with the TAB key.";
+    await this.dialogue.show(controlsLine, "guide");
     this.dialogue.hide();
     // The first secret-Kirby showing is the first timer peek (carries the line).
 
@@ -996,17 +1021,51 @@ export class WorldScene extends Phaser.Scene {
   // ---------- verbs ----------
   awaitVerb(verb, label) {
     return new Promise((resolve) => {
-      this._showPrompt(label ? `${label}  ·  SPACE` : "SPACE");
+      // Prompt copy adapts to the input device (tap the prompt vs. press SPACE).
+      const onTouch = this.touch && this.touch.active;
+      const text = onTouch
+        ? (label ? `tap to ${label}` : "tap to continue")
+        : (label ? `${label}  ·  SPACE` : "SPACE");
+      this._showPrompt(text);
       let released = false;
       const check = () => {
-        if (!released) { if (this.spaceKey.isUp) released = true; return; }
-        if (this.spaceKey.isDown) { this._hidePrompt(); this.events.off("update", check); resolve(); }
+        // Keyboard: require release-then-fresh-press (avoids SPACE carryover).
+        if (!released) { if (this.spaceKey.isUp) released = true; }
+        const keyPress = released && this.spaceKey.isDown;
+        const tapPress = this.touch && this.touch.consumeConfirm();
+        if (keyPress || tapPress) { this._hidePrompt(); this.events.off("update", check); resolve(); }
       };
       this.events.on("update", check);
     });
   }
-  _showPrompt(t) { const p = document.getElementById("verb-prompt"); if (p) { p.textContent = t; p.classList.remove("hidden"); } }
-  _hidePrompt() { const p = document.getElementById("verb-prompt"); if (p) p.classList.add("hidden"); }
+  // Show the center banner prompt. On touch the banner itself is the tap target (see
+  // _wirePromptTap) — a tap on it arms the confirm the update loop consumes.
+  _showPrompt(t) {
+    const p = document.getElementById("verb-prompt");
+    if (p) { p.textContent = t; p.classList.remove("hidden"); }
+  }
+  _hidePrompt() {
+    const p = document.getElementById("verb-prompt");
+    if (p) { p.classList.add("hidden"); p.classList.remove("pressed"); }
+  }
+
+  // Make the floating prompt tappable (touch only): a tap arms the poll one-shot that
+  // the encounter-trigger + verb-prompt checks in update()/awaitVerb consume. Wired
+  // once; harmless while the prompt is hidden (nothing reads the arm then).
+  _wirePromptTap() {
+    if (!this.touch) return;
+    const p = document.getElementById("verb-prompt");
+    if (!p) return;
+    p.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "touch") return;
+      if (p.classList.contains("hidden")) return;
+      e.preventDefault();
+      p.classList.add("pressed");
+      this.touch.armConfirm();
+    });
+    p.addEventListener("pointerup", () => p.classList.remove("pressed"));
+    p.addEventListener("pointercancel", () => p.classList.remove("pressed"));
+  }
 
   // ---------- effects ----------
 
@@ -1313,24 +1372,28 @@ export class WorldScene extends Phaser.Scene {
       // Reveal the sprites, photos, AND "the end" together (they share the same fade-in).
       if (theEnd) theEnd.classList.remove("hidden");
       this.tweens.add({ targets: this.ambientOverlay, alpha: 0, duration: 1500 });
-      const go = (e) => {
-        if (e.code === "Space" || e.code === "Enter") {
-          // If a memory photo is open in the lightbox, SPACE/ENTER shouldn't leave the
-          // end screen — let the user browse first (ESC / click-bg closes the lightbox).
-          const lb = document.getElementById("lightbox");
-          if (lb && !lb.classList.contains("hidden")) return;
-          window.removeEventListener("keydown", go);
-          el && el.classList.add("hidden"); theEnd && theEnd.classList.add("hidden");
-          const frame = document.getElementById("end-frame");
-          if (frame) frame.innerHTML = "";
-          this.scene.start("title", { dialogue: this.dialogue, album: this.album, letter: this.letter, audio: this.audio });
-          resolve();
-        }
+      let unsubTouch = null;
+      const leave = () => {
+        // If a memory photo is open in the lightbox, don't leave the end screen —
+        // let the user browse first (ESC / close button / click-bg closes it).
+        const lb = document.getElementById("lightbox");
+        if (lb && !lb.classList.contains("hidden")) return;
+        window.removeEventListener("keydown", go);
+        if (unsubTouch) unsubTouch();
+        el && el.classList.add("hidden"); theEnd && theEnd.classList.add("hidden");
+        const frame = document.getElementById("end-frame");
+        if (frame) frame.innerHTML = "";
+        this.scene.start("title", { dialogue: this.dialogue, album: this.album, letter: this.letter, audio: this.audio, peek: this.peek, touch: this.touch });
+        resolve();
       };
+      const go = (e) => { if (e.code === "Space" || e.code === "Enter") leave(); };
       // Small guard so a SPACE press carried over from the finale dialogue doesn't instantly
       // dismiss the end screen. (Was 3.2s to outlast the delayed "the end"; now everything
       // shows at once, so a shorter guard is enough.)
-      setTimeout(() => window.addEventListener("keydown", go), 1500);
+      setTimeout(() => {
+        window.addEventListener("keydown", go);
+        if (this.touch) unsubTouch = this.touch.onConfirm(leave);
+      }, 1500);
     });
   }
 
@@ -1496,9 +1559,24 @@ export class WorldScene extends Phaser.Scene {
     if (this.keys.W.isDown) iy -= 1;
     if (this.keys.S.isDown) iy += 1;
     if (ix && iy) { const inv = 1 / Math.sqrt(2); ix *= inv; iy *= inv; }
+    // Virtual joystick (touch) adds its analog vector; when the stick is in use it
+    // supplies the whole input (WASD is 0 on a touch device). Clamp the combined
+    // magnitude to 1 so diagonal + stick can't exceed full speed.
+    if (this.touch && this.touch.active) {
+      const m = this.touch.getMove();
+      if (m.x || m.y) {
+        ix += m.x; iy += m.y;
+        const mag = Math.hypot(ix, iy);
+        if (mag > 1) { ix /= mag; iy /= mag; }
+      }
+    }
     const dx = ix * step, dy = iy * step;
     if (dx || dy) {
-      this.player.lastDir = { x: Math.sign(dx), y: Math.sign(dy) };
+      // Keep the ANALOG direction (ix,iy) — not sign-collapsed — so _faceSnoopy can
+      // compare true magnitudes. The joystick almost never gives a pure vertical
+      // (a thumb pushing "up" has a little x too); with Math.sign, |x|>=|y| ties
+      // always picked left/right, so up/down never showed. Raw ix/iy fixes that.
+      this.player.lastDir = { x: ix, y: iy };
       this._faceSnoopy(this.player, this.player.lastDir, true);   // walk
     } else if (this.player._moving) {
       this._faceSnoopy(this.player, this.player.lastDir, false);  // idle
@@ -1525,8 +1603,10 @@ export class WorldScene extends Phaser.Scene {
     }
     this.activeEncounter = near;
     if (near && !this.runner.running) {
-      this._showPrompt("SPACE to open");
-      if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) { this._hidePrompt(); this.runner.play(near); }
+      this._showPrompt(this.touch && this.touch.active ? "tap to open" : "SPACE to open");
+      const keyPress = Phaser.Input.Keyboard.JustDown(this.spaceKey);
+      const tapPress = this.touch && this.touch.consumeConfirm();
+      if (keyPress || tapPress) { this._hidePrompt(); this.runner.play(near); }
     } else if (!this.runner.running) {
       this._hidePrompt();
     }

@@ -51,13 +51,22 @@ export class MemoryAlbum {
       this.photo.src = p.src;
       this.caption.textContent = p.caption || "";
       this.reveal.classList.remove("hidden");
+      const shownAt = performance.now();
+      let unsubTouch = null;
+      const dismiss = () => {
+        // Small guard so the tap/press that finished dialogue doesn't instantly skip
+        // the reveal (mirrors the dialogue 250ms carryover guard).
+        if (performance.now() - shownAt < 250) return;
+        window.removeEventListener("keydown", onKey);
+        if (unsubTouch) unsubTouch();
+        this.reveal.classList.add("hidden"); resolve();
+      };
       const onKey = (e) => {
-        if (e.code === "Space" || e.code === "Enter") {
-          e.preventDefault(); window.removeEventListener("keydown", onKey);
-          this.reveal.classList.add("hidden"); resolve();
-        }
+        if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); dismiss(); }
       };
       window.addEventListener("keydown", onKey);
+      // Touch: a tap (action button or tap-anywhere) dismisses the reveal.
+      if (this.touch) unsubTouch = this.touch.onConfirm(dismiss);
     });
   }
 
@@ -165,5 +174,15 @@ export class MemoryAlbum {
     });
     // click a gallery item -> lightbox; click lightbox bg -> close
     this.lightbox?.addEventListener("click", (e) => { if (e.target === this.lightbox) this.lightbox.classList.add("hidden"); });
+
+    // --- Touch / click reachability (also nice on desktop) ---
+    // The "album (tab)" HUD label opens the album (mirrors TAB).
+    document.getElementById("album-toggle")?.addEventListener("click", () => this.album.classList.toggle("hidden"));
+    // On-screen close for the album (no ESC/TAB on touch).
+    document.getElementById("album-close")?.addEventListener("click", (e) => { e.stopPropagation(); this.album.classList.add("hidden"); });
+    // On-screen lightbox controls: close + prev/next (arrow keys don't exist on touch).
+    document.getElementById("lightbox-close")?.addEventListener("click", (e) => { e.stopPropagation(); this.lightbox.classList.add("hidden"); });
+    document.getElementById("lightbox-prev")?.addEventListener("click", (e) => { e.stopPropagation(); this._lightNav(-1); });
+    document.getElementById("lightbox-next")?.addEventListener("click", (e) => { e.stopPropagation(); this._lightNav(1); });
   }
 }

@@ -153,6 +153,16 @@ export class TitleScene extends Phaser.Scene {
     const sub = this.add.text(width / 2, height / 2 - 14 * s, "Isa & Ayush — est. July 23, 2025", {
       fontFamily: "Caveat, cursive", fontSize: px(46), color: "#ff9ecb",
     }).setOrigin(0.5);
+    // Fit-to-width: on a narrow / portrait screen (phone) the height-scaled font can
+    // overrun the screen edges. Shrink the title + subtitle uniformly if either is
+    // wider than 92% of the viewport, so nothing gets clipped. (No-op on wide screens.)
+    const maxW = width * 0.92;
+    const widest = Math.max(title.width, sub.width);
+    if (widest > maxW) {
+      const fit = maxW / widest;
+      title.setScale(fit);
+      sub.setScale(fit);
+    }
     // Entrance: fade + rise (only the first build; skip on resize reflows so it isn't jarring).
     if (!this._entered) {
       this._entered = true;

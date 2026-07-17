@@ -9,6 +9,7 @@ import { AudioManager } from "./ui/AudioManager.js";
 import { CursorTrail } from "./ui/CursorTrail.js";
 import { PeekKirby } from "./ui/PeekKirby.js";
 import { DebugMode } from "./ui/DebugMode.js";
+import { TouchControls } from "./ui/TouchControls.js";
 
 // Custom lily cursor + falling-leaf trail, global across all scenes/UI.
 const cursorTrail = new CursorTrail();
@@ -18,12 +19,29 @@ cursorTrail.init();
 const peek = new PeekKirby();
 peek.init();
 
+// Touch controls (virtual joystick + action button + tap-to-confirm). Only mounts
+// its overlay once a touch / coarse-pointer device is detected; desktop unchanged.
+const touch = new TouchControls();
+touch.init();
+
+const dialogue = new DialogueManager();
+const album = new MemoryAlbum();
+const letter = new LetterUI();
+
+// Wire touch-confirm into the DOM-overlay UIs (dialogue advance, memory reveal
+// dismiss, letter close). WorldScene reads `touch` from deps for movement + the
+// encounter trigger + verb prompt.
+dialogue.touch = touch;
+album.touch = touch;
+letter.touch = touch;
+
 const deps = {
-  dialogue: new DialogueManager(),
-  album: new MemoryAlbum(),
-  letter: new LetterUI(),
+  dialogue,
+  album,
+  letter,
   audio: new AudioManager(),
   peek,
+  touch,
 };
 
 const config = {

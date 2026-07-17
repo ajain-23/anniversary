@@ -252,7 +252,16 @@ body.lily-cursor * { cursor: none !important; }
   flex: 0 1 auto; min-height: 0;
 }
 @media (max-width: 640px) {
-  #album-grid { --cellw: min(38vw, 30vh); grid-template-columns: repeat(2, var(--cellw)); }
+  /* Phone: 12 photos in 2 columns = 6 rows, which can't fit a portrait screen. So
+     size cells off WIDTH (readable thumbnails) and let the grid SCROLL vertically,
+     with the title + hint pinned above/below. (Desktop keeps its no-scroll 4×3.) */
+  #album { justify-content: flex-start; padding: 2.5vh 4vw; }
+  #album-grid {
+    --cellw: min(42vw, 220px);
+    grid-template-columns: repeat(2, var(--cellw));
+    flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    align-content: start; width: 100%; padding: 2px 0 1vh;
+  }
 }
 .album-item {
   background: linear-gradient(180deg,#fffdf8,#f1e9db);
@@ -535,6 +544,104 @@ body.lily-cursor * { cursor: none !important; }
   0%, 100% { filter: drop-shadow(0 0 4px rgba(255, 217, 138, 0.45)); }
   50%      { filter: drop-shadow(0 0 9px rgba(255, 217, 138, 0.85)); }
 }
+
+/* ---------- Touch controls (phone / iPad) ---------- */
+/* Mounted only once a touch / coarse-pointer device is detected (see
+   ui/TouchControls.js), so desktop never sees any of this. The layer sits above the
+   world + dialogue/reveal but BELOW the full-screen menus (album/lightbox/letter/end),
+   and is hidden entirely whenever one of those menus is open (:has, below). */
+#touch-layer {
+  position: fixed; inset: 0; z-index: 35;
+  pointer-events: none;            /* only the controls themselves catch touches */
+  -webkit-user-select: none; user-select: none;
+  touch-action: none;              /* no page scroll/zoom from control drags */
+  opacity: 0;                      /* hidden by default (e.g. title screen) */
+}
+#touch-layer > * { pointer-events: none; }
+
+/* The joystick belongs to the WORLD scene only (WorldScene toggles .world-active on
+   <body>) — so it never shows OR catches touches on the title/other scenes. */
+body.world-active #touch-layer { opacity: 1; }
+body.world-active #touch-layer > * { pointer-events: auto; }
+
+/* ...but still hide it whenever a full-screen menu/moment is up, even in-world. */
+body.world-active:has(#album:not(.hidden)) #touch-layer,
+body.world-active:has(#lightbox:not(.hidden)) #touch-layer,
+body.world-active:has(#letter:not(.hidden)) #touch-layer,
+body.world-active:has(#end-screen:not(.hidden)) #touch-layer,
+body.world-active:has(#memory-reveal:not(.hidden)) #touch-layer,
+body.world-active:has(#intro-black:not(.hidden)) #touch-layer {
+  opacity: 0;
+}
+body.world-active:has(#album:not(.hidden)) #touch-layer > *,
+body.world-active:has(#lightbox:not(.hidden)) #touch-layer > *,
+body.world-active:has(#letter:not(.hidden)) #touch-layer > *,
+body.world-active:has(#end-screen:not(.hidden)) #touch-layer > *,
+body.world-active:has(#memory-reveal:not(.hidden)) #touch-layer > *,
+body.world-active:has(#intro-black:not(.hidden)) #touch-layer > * {
+  pointer-events: none;
+}
+
+/* Virtual joystick — fixed bottom-left. A translucent ring (base) + a brighter knob
+   that follows the thumb. */
+#touch-stick {
+  position: absolute;
+  left: calc(26px + env(safe-area-inset-left, 0px));
+  bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+  width: 132px; height: 132px;
+  opacity: 0.5; transition: opacity 0.18s ease;
+}
+#touch-stick.active { opacity: 0.85; }
+#touch-stick-base {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: rgba(20,16,30,0.42);
+  border: 2px solid rgba(255,217,138,0.55);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.4), inset 0 0 24px rgba(0,0,0,0.35);
+}
+#touch-stick-knob {
+  position: absolute; left: 50%; top: 50%;
+  width: 58px; height: 58px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 40% 35%, rgba(255,236,196,0.95), rgba(255,196,110,0.9));
+  border: 2px solid rgba(255,255,255,0.5);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+}
+
+/* On touch, the floating "tap to open / tap to <verb>" prompt IS the trigger: give
+   it a comfy finger-sized hit target + a pressed pop. (Desktop keeps the small
+   keyboard hint banner unchanged.) */
+body.touch-mode #verb-prompt {
+  font-size: 17px; padding: 14px 26px; border-radius: 26px;
+  text-align: center; max-width: 80vw;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+/* Pressed cue via brightness (NOT transform — the bob animation owns transform). */
+body.touch-mode #verb-prompt.pressed { filter: brightness(0.9); }
+
+/* On-screen close/nav buttons for the album + lightbox. Real buttons (reset styles),
+   shown ONLY in touch mode (desktop keeps its keyboard controls + clutter-free menus). */
+.touch-ui-btn {
+  display: none;
+  font-family: var(--soft); color: var(--gold);
+  background: rgba(20,16,30,0.6); border: 1px solid rgba(255,217,138,0.5);
+  border-radius: 50%; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  align-items: center; justify-content: center;
+}
+body.touch-mode .touch-ui-btn { display: flex; }
+#album-close, #lightbox-close {
+  position: absolute; top: 16px; right: 16px; z-index: 3;
+  width: 46px; height: 46px; font-size: 22px; line-height: 1;
+}
+.lightbox-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+  width: 52px; height: 52px; font-size: 30px; line-height: 1;
+}
+#lightbox-prev { left: 14px; }
+#lightbox-next { right: 14px; }
+
+/* On touch, make the "album (tab)" HUD label read as tappable + give it a finger-sized hit. */
+body.touch-mode #album-toggle { padding: 4px 2px; }
 
 /* ---------- Debug mode (dev tools) ---------- */
 .debug-btn {

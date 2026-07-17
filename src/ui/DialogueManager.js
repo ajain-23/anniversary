@@ -31,6 +31,11 @@ export class DialogueManager {
         }
       }, 22);
 
+      let unsubTouch = null;
+      const cleanup = () => {
+        window.removeEventListener("keydown", onKey);
+        if (unsubTouch) unsubTouch();
+      };
       const advance = () => {
         // ignore presses in the first 250ms (prevents carryover skips)
         if (performance.now() - shownAt < 250) return;
@@ -41,13 +46,15 @@ export class DialogueManager {
           this.typing = false;
           return;
         }
-        window.removeEventListener("keydown", onKey);
+        cleanup();
         resolve();
       };
       const onKey = (e) => {
         if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); advance(); }
       };
       window.addEventListener("keydown", onKey);
+      // Touch: a tap (action button or tap-anywhere) advances just like SPACE.
+      if (this.touch) unsubTouch = this.touch.onConfirm(advance);
     });
   }
 

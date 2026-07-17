@@ -15,16 +15,24 @@ export class LetterUI {
       this.photo.src = FINAL_PHOTO.src; // present-day photo (also counted as the final memory)
       this.el.classList.remove("hidden");
       // fade handled by CSS animation
+      let unsubTouch = null;
+      const close = () => {
+        window.removeEventListener("keydown", onKey);
+        if (unsubTouch) unsubTouch();
+        this.el.classList.add("hidden");
+        resolve();
+      };
       const onKey = (e) => {
         if (e.code === "Space" || e.code === "Enter" || e.code === "Escape") {
-          e.preventDefault();
-          window.removeEventListener("keydown", onKey);
-          this.el.classList.add("hidden");
-          resolve();
+          e.preventDefault(); close();
         }
       };
-      // small delay so she doesn't skip instantly
-      setTimeout(() => window.addEventListener("keydown", onKey), 1200);
+      // small delay so she doesn't skip instantly (also delays the touch-confirm
+      // subscription so the tap that opened the letter doesn't immediately close it).
+      setTimeout(() => {
+        window.addEventListener("keydown", onKey);
+        if (this.touch) unsubTouch = this.touch.onConfirm(close);
+      }, 1200);
     });
   }
 }
