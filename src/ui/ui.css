@@ -439,13 +439,32 @@ body.lily-cursor * { cursor: none !important; }
   width: min(320px, 30vw); border: 8px solid #fff;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3); border-radius: 2px; background:#ddd;
 }
-/* Narrow screens: stack photo under the paper. */
+/* Narrow screens: stack photo under the paper, and make the WHOLE overlay scroll so
+   paper + photo + hint (which together exceed the viewport once stacked) are never
+   clipped on any side. */
 @media (max-width: 720px) {
-  .letter-spread { flex-direction: column; gap: 16px; }
-  .letter-paper { width: min(560px, 88vw); }
-  #letter-photo { width: 60%; }
+  #letter {
+    justify-content: flex-start;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: max(16px, env(safe-area-inset-top, 0px)) 4vw
+             max(16px, env(safe-area-inset-bottom, 0px));
+  }
+  .letter-spread {
+    flex-direction: column; gap: 14px; max-width: 100%;
+    margin: auto;            /* center the block when it DOES fit; scroll when it doesn't */
+  }
+  .letter-paper {
+    width: min(560px, 92vw); max-height: none;   /* let the overlay scroll instead */
+    padding: 22px 22px; font-size: 19px;
+  }
+  #letter-photo { width: min(260px, 70vw); }
 }
-#letter-hint { color: var(--gold); font-family: var(--soft); font-size: 12px; margin-top: 20px; opacity: 0.7; letter-spacing:2px; text-transform:uppercase; animation: blink 1.4s infinite; }
+/* Short landscape: even less height — keep the paper text smaller so more fits. */
+@media (max-height: 520px) {
+  .letter-paper { font-size: 17px; padding: 18px 20px; }
+  #letter-photo { width: min(200px, 40vw); }
+}
+#letter-hint { color: var(--gold); font-family: var(--soft); font-size: 12px; margin-top: 20px; opacity: 0.7; letter-spacing:2px; text-transform:uppercase; animation: blink 1.4s infinite; flex: 0 0 auto; }
 
 /* ---------- Wordless end ---------- */
 #end-screen {
@@ -567,6 +586,18 @@ body.lily-cursor * { cursor: none !important; }
 }
 .the-end-sub { font-family: "Quicksand", sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.6; margin-top: 8px; }
 .end-inner { display:flex; flex-direction:column; align-items:center; }
+
+/* Small / short screens: the perimeter photos (clamp min 96px) and the center
+   sprites + text were desktop-sized, so on a phone they overran every edge and
+   crowded the middle. Shrink both so the whole end screen fits. (Placed after the
+   base end-screen rules so these win by source order.) */
+@media (max-width: 560px), (max-height: 520px) {
+  #end-frame .ef-photo { width: clamp(46px, 15vw, 84px); padding: 3px 3px 8px; }
+  .end-pair { gap: 10px; transform: scale(0.72); }
+  #the-end { font-size: 26px; margin-top: 16px; }
+  .the-end-sub { font-size: 11px; }
+  .end-heart { width: 24px; height: 24px; }
+}
 
 /* ---------- Wayfinder arrow (points to the next destination) ---------- */
 #wayfinder {
