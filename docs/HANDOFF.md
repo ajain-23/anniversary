@@ -31,6 +31,56 @@ GitHub Pages.
 > Since the sections below were written, prior sessions changed a lot. The bullets below are
 > still ~80% accurate for structure; where they conflict with this box, THIS BOX WINS.
 >
+> > ### ⚑⚑⚑⚑⚑ LATEST HANDOFF (newest — supersedes ALL boxes below)
+> > **The game is COMPLETE and DEPLOYED.** Live at **https://ajain-23.github.io/anniversary/**
+> > (repo `github.com/ajain-23/anniversary`, deploys via `.github/workflows/deploy.yml` on push
+> > to `main`). Everything structural + real photos + music is in. Only optional items remain.
+> >
+> > **What shipped since the "NEWEST SESSION" box below:**
+> > - **Graduation reworked** — no spawned crowd / no drawn cap. `gradWalk()` walks the static
+> >   `snoopygradwalk.png` cycle L→R across tiles (13,21)→(19,21), then stands the static
+> >   `snoopygrad.png` at (16,21) with animated-confetti bursts (`confetti.png` 8×8 sheet). Real
+> >   player + graduation marker are HIDDEN for the whole encounter, restored in
+> >   `markComplete("graduation")`. Tunables: `GRADWALK_*`, `GRAD_*`, `CONFETTI_*` in WorldScene.
+> > - **Real photos wired.** 12 clean JPEGs in `public/assets/photos/` named `01.jpg`–`12.jpg` by
+> >   REVEAL order. `P(n)` in `encounters.js` = `${BASE}assets/photos/NN.jpg` (base-relative).
+> >   FINAL_PHOTO = 12.jpg. Originals backed up at `~/isa-game-photo-originals-backup/`.
+> > - **AUDIO — mixtape model (one song per encounter).** `AudioManager.js` maps `title` + `01`–`11`
+> >   to the user's real files (`e0_whereismyhusband` … `e12_stupidsong`, kept their descriptive
+> >   names) in `public/assets/audio/`. Each encounter swaps to its song via `{music:"NN"}` (first
+> >   step); song carries the walk until the next encounter; `title` plays title screen + opening
+> >   walk. Per-zone music REMOVED. Track→memory map + artists live in `AudioManager.trackMeta`.
+> >   - **Crossfade** ~1.8s between songs; **duck** to 70% (`duckFactor`) during encounters
+> >     (EventRunner `duck()/unduck()`); **mute = instant pause / unmute = resume in place** (no
+> >     restart). `musicVolume` 0.5.
+> >   - **"Now playing" HUD** (`#now-playing`, below mute at top:45px): animated equalizer bars +
+> >     "Title · Artist", updates per song, hidden while muted.
+> >   - **memory + letter SFX wired** (play on each reveal / letter open).
+> >   - Two songs trimmed at the file level: `e10_housetour` (-30s), `e11_wonderingwhy` (-8s).
+> > - **Deploy fixed for Pages:** all asset paths base-relative (no leading `/assets/`),
+> >   `public/.nojekyll`, `.gitignore` (node_modules/dist), Actions workflow. `vite base:"./"`.
+> > - **Map collision fixes** in `world.tmj`: freed tiles (26,66)/(32,66) (moved lamp rects to
+> >   row 65); added a table collision at (41,63)/(42,63). (tmj was re-serialized once via JSON.)
+> > - **Album/title/letter polish:** album = fixed 4×3 grid, uniform 4:3 cover-crop thumbnails,
+> >   dark "impression" placeholders for uncollected slots, fits viewport no-scroll, centered
+> >   captions ("nothing yet, keep exploring!"). Title screen = gradient/vignette bg, drifting
+> >   dust + hearts, shooting star (arc), breathing title glow, cursive subtitle, rounded buttons.
+> >   Letter = paper + photo side-by-side. Memory-reveal photo height-capped (portraits fit).
+> > - **New Game bug fixed:** `MemoryAlbum.reset()` clears in-memory `collected` (not just
+> >   localStorage), so New Game no longer shows all memories unlocked.
+> >
+> > **STILL OPEN (all optional — nothing blocks shipping):**
+> > 1. **6 SFX files** — `warm, memory, chime, fireworks, cheer, letter` → `public/assets/audio/sfx/`.
+> >    Game is fine without them (silent). See `docs/AUDIO_TODO.md`.
+> > 2. **Full live playthrough** on the deployed URL (music/photos/flow) — user verifies visually.
+> > 3. **Mobile/touch support** — NOT playable on touch (keyboard-only). Full plan in
+> >    `docs/MOBILE_TOUCH_SUPPORT.md`. Only needed if she'll use a phone/iPad.
+> >
+> > **Workflow reminders:** `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` before npm; keep
+> > `npm run build` clean. Do NOT `pkill` vite. User verifies visually — do NOT run headless/
+> > puppeteer. Repo has a git remote now; the assistant stages/commits but the USER runs
+> > `git push` (auth). Do NOT reintroduce per-zone lighting or the growth/lily motif.
+> >
 > > ### ⚑⚑⚑⚑ NEWEST SESSION (supersedes everything below, incl. the "apply the SCRIPT rewrite" box)
 > > **The SCRIPT rewrite is DONE + a full ambient-NPC system was added.** Current state:
 > > - **SCRIPT rewrite APPLIED** (see `docs/SCRIPT_REWRITE_HANDOFF.md`, now marked applied):
@@ -374,15 +424,17 @@ have them play, they return a numbered list, you triage (real bug vs. asset-pend
 design change) and fix. Confirm design changes with them before implementing.
 
 ## Suggested next steps
-(The SCRIPT rewrite, ambient NPCs, marker placement, and the family crowd are DONE — see the
-NEWEST-SESSION box at the top.)
-1. **User's real content (biggest remaining):** the **12 photos** (`public/assets/photos/`,
-   still placeholders) + **audio** (no `public/assets/audio/` dir yet — game is silent; keys in
-   `src/ui/AudioManager.js`). Letter + family lines are already in the code.
-2. **Wire `snoopygrad.png`** (cap-and-gown Snoopy) into E10 `capSwap()` — currently just pops a
-   cap prop onto normal Snoopy.
-3. Full 5-zone MANUAL start→finish playthrough (user spot-tests; a clean run still pending).
+(Game is COMPLETE + DEPLOYED — see the LATEST HANDOFF box at the top. Photos, music, graduation
+rework, deploy: all DONE. Only optional items remain.)
+1. **6 SFX files** (optional) → `public/assets/audio/sfx/`: `warm, memory, chime, fireworks,
+   cheer, letter`. Silent without them. Checklist: `docs/AUDIO_TODO.md`.
+2. **Full live playthrough** on https://ajain-23.github.io/anniversary/ (music/photos/flow) —
+   user verifies visually.
+3. **Mobile/touch support** (optional) — only if she'll use a phone/iPad. Full plan:
+   `docs/MOBILE_TOUCH_SUPPORT.md` (currently keyboard-only, unplayable on touch).
 4. Continue the playtest → triage → fix loop (the user's preferred workflow).
+
+DEPLOY: assistant stages/commits; USER runs `git push` (auth). Action redeploys on push to main.
 
 NOTE: the deferred per-zone lighting pass and the growth/lily motif were explicitly DROPPED —
 do not reintroduce them.
