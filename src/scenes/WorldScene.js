@@ -961,7 +961,9 @@ export class WorldScene extends Phaser.Scene {
     await wait(2300);
     black.classList.add("hidden"); black.style.opacity = "1"; black.style.transition = "";
 
-    this.audio?.playMusic("meadow");
+    // Opening walk (spawn → first memory) uses the title/opening track; each memory then swaps
+    // to its own song (see encounters.js {music:"NN"}), which carries the walk until the next.
+    this.audio?.playMusic("title");
     await this.dialogue.show("There you are. Take your time. You've been asleep a long while.", "guide");
     await this.dialogue.show("You don't remember anything right now. That's alright – that's what this journey is for.", "guide");
     await this.dialogue.show("Go on. Explore with the W A S D keys. The small golden arrow will help guide you to your memories. Every memory you collect will be added to your album (top left), which you can check anytime with the TAB key.", "guide");
@@ -1352,7 +1354,9 @@ export class WorldScene extends Phaser.Scene {
       const prof = ZONE_PROFILES[key];
       if (prof) {
         this.cameras.main.setBackgroundColor(prof.bg);
-        if (prof.music) this.audio?.playMusic(prof.music);
+        // NOTE: music is no longer per-zone. Each memory swaps to its own song (mixtape model,
+        // see encounters.js {music:"NN"}); the opening walk uses the "title" track. So we only
+        // apply the zone background color here, not prof.music.
       }
     }
   }

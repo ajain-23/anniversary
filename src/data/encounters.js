@@ -38,6 +38,7 @@ export const ENCOUNTERS = {
   pond: {
     id: "pond", zone: "meadow", once: true,
     steps: [
+      { music: "01" },
       { verb: "lookIn", label: "look at your reflection" },
       { cutscene: { bg: "#3a6b8c", sprite: "isa" } },
       { say: "...that's me?! Am I crazy, or am I actually just that cute?", who: "memory" },
@@ -52,6 +53,7 @@ export const ENCOUNTERS = {
   usual: {
     id: "usual", zone: "meadow", once: true,
     steps: [
+      { music: "02" },
       { say: "Hot vanilla latte with almond milk for Isa!", who: "npc", name: "café" },
       { verb: "take", label: "take the cup" },
       { sfx: "warm" },
@@ -67,6 +69,7 @@ export const ENCOUNTERS = {
   insurance: {
     id: "insurance", zone: "meadow", once: true,
     steps: [
+      { music: "03" },
       { say: "Pastries, cookies, frozen yogurt, get it all here!", who: "npc", name: "bakery" },
       { verb: "take", label: "take a treat" },
       { say: "I do love some original tart frozen yogurt. And anything else with sugar as the primary ingredient.", who: "memory" },
@@ -84,6 +87,7 @@ export const ENCOUNTERS = {
   firstDate: {
     id: "firstDate", zone: "park", once: true,
     steps: [
+      { music: "04" },
       { say: "One cup of lemon gelato and one cup of strawberry gelato, coming right up!", who: "npc", name: "gelato" },
       { verb: "take", label: "take the gelato" },
       { say: "...The first date. Someone was *so* nervous. The moment you walked into his life that warm June evening, his jaw was on the floor.", who: "guide" },
@@ -99,6 +103,7 @@ export const ENCOUNTERS = {
   falling: {
     id: "falling", zone: "park", once: true,
     steps: [
+      { music: "05" },
       { say: "Fourth of July. Your second date. Picnic and fireworks. He was so smitten, he could hardly eat, hardly even think. The fireworks in his heart were louder than the ones in the sky.", who: "guide" },
       { verb: "watch", label: "watch the sky" },
       { fireworks: true }, { sfx: "fireworks" },
@@ -114,6 +119,7 @@ export const ENCOUNTERS = {
   iloveyou: {
     id: "iloveyou", zone: "park", once: true,
     steps: [
+      { music: "06" },
       { say: "Fast forward to December, at the Milpitas BART. Cold enough to see your breath. He had this sure feeling in his chest — it had been there for way too long — but he was too afraid to express it out loud.", who: "guide" },
       { say: "So you said it first. You always were braver than him.", who: "guide" },
       { verb: "sayIt", label: "say the words" },
@@ -133,6 +139,7 @@ export const ENCOUNTERS = {
   family: {
     id: "family", zone: "city", once: true,
     steps: [
+      { music: "07" },
       { say: "This memory isn't just about one particular moment. It's about who you are in every moment, and who you bring with you.", who: "guide" },
       { verb: "visitAll", label: "see yourself" },
       { say: "My mom. My sister. My cousins. My aunts. Family is everything to me.", who: "memory" },
@@ -146,6 +153,7 @@ export const ENCOUNTERS = {
   trips: {
     id: "trips", zone: "city", once: true,
     steps: [
+      { music: "08" },
       { say: "Despite busy schedules, you made time to travel. Scared you'd get sick of each other, instead coming home closer than ever.", who: "guide" },
       { verb: "take", label: "reminisce" },
       { say: "San Diego...the drive down. windows down, terrible singing, his hand on my leg and my hand on top. Three days that felt like a first sneak peek into an amazing future.", who: "memory" },
@@ -163,6 +171,7 @@ export const ENCOUNTERS = {
   graduation: {
     id: "graduation", zone: "city", once: true,
     steps: [
+      { music: "09" },
       { say: "This one's all you. Look how far you've come.", who: "guide" },
       { verb: "wearCap", label: "walk the stage" },
       { sfx: "cheer" }, { gradWalk: true },
@@ -179,6 +188,7 @@ export const ENCOUNTERS = {
   notices: {
     id: "notices", zone: "city", once: true,
     steps: [
+      { music: "10" },
       { say: "...You always notice everything and everyone, Isa. I hope today makes you feel as seen as you make him feel.", who: "guide" },
       { verb: "open", label: "open the note" },
       { say: "Whenever he has felt like an inconvenience – for his vegetarianism, for his bad Spanish, for the days he doesn't feel like much to look at, for so many things – you never let that sit. Every time, you fill the gap.", who: "guide" },
@@ -197,15 +207,15 @@ export const ENCOUNTERS = {
   // so replays don't inflate the counter.
   //
   // Trimmed per SCRIPT rewrite: finale.1 (guide) -> finale.2 (memory) -> finale.3 (guide) ->
-  // {music:"finale"} -> letter -> {memory finale, silent} -> end. (The SCRIPT dropped the
-  // explicit [MUSIC] marker, but we keep the finale music swap per the locked decision.)
+  // {music:"11"} (the finale song swells in at the reveal) -> letter -> {memory finale, silent}
+  // -> end.
   finale: {
     id: "finale", zone: "home", finale: true,
     steps: [
       { say: "This is the last one, Isa. You found all the others.", who: "guide" },
       { say: "He's so *gol mol*, isn't he. My Mocoso!", who: "memory" },
       { say: "That's me! I love you so, so much. I have one more thing for you.", who: "guide" },
-      { music: "finale" },
+      { music: "11" },  // the finale song swells in at the reveal (kept mid-encounter, not at top)
       { letter: true },
       // The letter shows FINAL_PHOTO embedded; silently register it as the last memory so the
       // album + counter stay 1:1 with photos (no separate full-screen reveal).

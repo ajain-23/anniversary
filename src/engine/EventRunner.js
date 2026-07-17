@@ -14,12 +14,15 @@ export class EventRunner {
     if (this.running) return;
     this.running = true;
     this.scene.setInputLocked(true);
+    // Duck the zone music under the encounter so dialogue + reveals have room to land.
+    this.audio?.duck();
 
     for (const step of encounter.steps) {
       await this._do(step);
     }
 
     this.dialogue.hide();
+    this.audio?.unduck();
     this.scene.setInputLocked(false);
     this.running = false;
     if (encounter.id) this.scene.markComplete(encounter.id);
@@ -30,6 +33,8 @@ export class EventRunner {
       await this.dialogue.show(step.say, step.who, step.name);
     } else if (step.memory) {
       this.dialogue.hide();
+      // Soft cue as each photo develops in (silent reveals — e.g. finale — skip it).
+      if (!step.memory.silent) this.audio?.sfx("memory");
       await this.album.revealMemory(step.memory);
     } else if (step.verb) {
       await this.scene.awaitVerb(step.verb, step.label);
@@ -47,6 +52,7 @@ export class EventRunner {
       await this.scene.openGate(step.gate);
     } else if (step.letter) {
       this.dialogue.hide();
+      this.audio?.sfx("letter"); // gentle paper/unfold as the finale letter appears
       await this.letter.open();
     } else if (step.end) {
       await this.scene.endScreen();

@@ -49,10 +49,12 @@ rewrite — see `docs/SCRIPT_REWRITE_HANDOFF.md`. (Note: the family NPC name-lab
 the rewrite, so no separate "Mom/Sister names" drop-in is needed.)
 
 ### Music/SFX  ->  public/assets/audio/  and  public/assets/audio/sfx/
-See filenames in src/ui/AudioManager.js:
-  title.mp3 ("wondering why"), meadow.mp3, shore.mp3, city.mp3, finale.mp3 ("stupid")
-  sfx/warm.mp3, chime.mp3, squirrel.mp3, fireworks.mp3, cheer.mp3, letter.mp3, memory.mp3
+**MIXTAPE MODEL: one song per encounter.** Songs are `title.mp3` + `01.mp3`..`11.mp3` (11
+encounters; `trips` gets one song). Each memory swaps to its song (crossfaded ~1.8s, under a
+dialogue duck), and it keeps playing through the walk until the next memory. `title` plays on the
+title screen + opening walk. SFX (`sfx/`): warm, memory, chime, fireworks, cheer, letter.
 Missing files fail silently (no crash), so add what you have.
+**See `docs/AUDIO_TODO.md` for the full checklist + which song maps to which memory.**
 
 ### Real art (tiles + sprites)  ->  tiles DONE, sprites PARTIAL
 The world renders the **delivered artist tilemap** (LimeZu "Modern Exteriors", 60×86, 16px).

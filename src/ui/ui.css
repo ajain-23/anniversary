@@ -318,6 +318,32 @@ body.lily-cursor * { cursor: none !important; }
   color: var(--gold); font-family: var(--soft); font-size: 16px;
   letter-spacing: 1px; opacity: 1; z-index: 15; cursor: pointer;
 }
+/* "Now playing" — animated equalizer + song · artist, just under the mute toggle. */
+#now-playing {
+  position: absolute; top: 45px; right: 18px; z-index: 15;
+  display: flex; align-items: center; justify-content: flex-end; gap: 7px;
+  max-width: 46vw;
+  color: #fff3d6; font-family: var(--soft); font-size: 15px; font-weight: 600;
+  letter-spacing: 0.5px; opacity: 0.95; pointer-events: none;
+  white-space: nowrap; overflow: hidden;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  transition: opacity 0.5s ease;
+}
+#now-playing .np-text { overflow: hidden; text-overflow: ellipsis; }
+#now-playing .np-artist { opacity: 0.72; }
+#now-playing.hidden { opacity: 0; }
+/* Animated equalizer bars — clearly "playing" (distinct from the mute ♪). */
+#now-playing .np-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; flex: 0 0 auto; }
+#now-playing .np-eq i {
+  width: 3px; height: 100%; background: var(--gold); border-radius: 1px;
+  transform-origin: bottom; animation: eq-bounce 0.9s ease-in-out infinite;
+}
+#now-playing .np-eq i:nth-child(2) { animation-delay: 0.3s; }
+#now-playing .np-eq i:nth-child(3) { animation-delay: 0.6s; }
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.3); }
+  50%      { transform: scaleY(1); }
+}
 #verb-prompt {
   position: absolute; left: 50%; top: 62%; transform: translateX(-50%);
   color: #14101f; background: var(--gold); font-family: var(--soft); font-weight: 700;
