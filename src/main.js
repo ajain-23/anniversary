@@ -63,6 +63,26 @@ const config = {
 const game = new Phaser.Game(config);
 game.scene.start("title", deps);
 
+// Keep the game sized to the ACTUAL visible viewport. On iOS Safari the layout
+// viewport (100vh / window.innerHeight) is taller than what's on screen when the
+// toolbar is shown, so a canvas sized to it overflows below the visible area — which
+// let the player walk "off the bottom" in portrait. window.visualViewport reports the
+// truly-visible size; sync the Phaser scale to it (fallback to innerWidth/Height).
+const syncGameSize = () => {
+  const vv = window.visualViewport;
+  const w = Math.round(vv ? vv.width : window.innerWidth);
+  const h = Math.round(vv ? vv.height : window.innerHeight);
+  if (w > 0 && h > 0) game.scale.resize(w, h);
+};
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", syncGameSize);
+  window.visualViewport.addEventListener("scroll", syncGameSize);
+}
+window.addEventListener("resize", syncGameSize);
+window.addEventListener("orientationchange", () => setTimeout(syncGameSize, 100));
+// Run once after boot so the very first frame matches the visible viewport.
+game.isBooted ? syncGameSize() : game.events.once("ready", syncGameSize);
+
 // Reveal the app (fade in #game-root) only once the game has booted + rendered a
 // frame, so the raw DOM-overlay HTML never flashes before CSS/JS are ready. See
 // the critical inline CSS in index.html.

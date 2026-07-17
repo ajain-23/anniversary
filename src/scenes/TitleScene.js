@@ -181,11 +181,14 @@ export class TitleScene extends Phaser.Scene {
     const hasSave = (JSON.parse(localStorage.getItem("rm_completed") || "[]")).length > 0;
 
     if (!hasSave) {
-      // FIRST PLAY: simple "press any key" (nice + clean)
-      const prompt = this.add.text(width / 2, height - 90 * s, "press any key to begin", {
-        fontFamily: "Quicksand, sans-serif", fontSize: px(22), color: "#f3eee7",
-      }).setOrigin(0.5).setAlpha(0.6);
-      this.tweens.add({ targets: prompt, alpha: 0.15, duration: 1100, yoyo: true, repeat: -1 });
+      // FIRST PLAY: simple "press any key" (nice + clean). Copy + position adapt to
+      // touch (no keys; and keep clear of the iPhone bottom unsafe area / Safari UI).
+      const onTouch = !!(this.deps && this.deps.touch && this.deps.touch.active);
+      const promptY = height - (onTouch ? 130 : 90) * s;
+      const prompt = this.add.text(width / 2, promptY, onTouch ? "tap to begin" : "press any key to begin", {
+        fontFamily: "Quicksand, sans-serif", fontSize: px(onTouch ? 26 : 22), color: "#f3eee7",
+      }).setOrigin(0.5).setAlpha(0.85);
+      this.tweens.add({ targets: prompt, alpha: 0.4, duration: 1100, yoyo: true, repeat: -1 });
       // once() guards against double-binding across repeated _layout() calls.
       this.input.keyboard.removeAllListeners("keydown");
       this.input.removeAllListeners("pointerdown");

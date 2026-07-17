@@ -22,7 +22,12 @@ html, body {
 #game-root {
   position: relative;
   width: 100vw;
+  /* Use the SMALL viewport height on mobile: iOS Safari's 100vh = the *largest*
+     (toolbar-hidden) height, so a 100vh canvas overflows below the visible area and
+     the bottom UI (e.g. the "tap to begin" prompt) hides under the toolbar. 100svh
+     is the always-visible height. vh fallback for old browsers. */
   height: 100vh;
+  height: 100svh;
   overflow: hidden;
   background:
     radial-gradient(120% 120% at 50% 30%, #14101f 0%, #0a0810 70%, #050408 100%);
@@ -144,6 +149,28 @@ body.lily-cursor * { cursor: none !important; }
   letter-spacing: 0.4px;
 }
 
+/* Small/portrait screens: a long line at 30px wraps into a very tall box anchored at
+   the bottom, so its top lines run off the top edge. Shrink the text + cap the box
+   height (internal scroll if a line is exceptionally long) so it always fits. */
+@media (max-width: 560px), (max-height: 520px) {
+  #dialogue {
+    width: 94vw; padding: 12px 18px 14px; border-radius: 14px;
+    /* Anchor with a REAL fixed gap that also clears the phone's home-indicator safe
+       area — a `%` bottom is a tiny sliver in short landscape, which clipped the pill's
+       bottom edge. */
+    bottom: max(14px, env(safe-area-inset-bottom, 0px));
+    max-height: 42vh; overflow-y: auto;
+  }
+  #dialogue-text { font-size: 21px; line-height: 1.22; min-height: 44px; }
+  #dialogue-speaker { font-size: 11px; margin-bottom: 4px; }
+}
+/* Short landscape specifically: less vertical room, so keep the box compact + capped
+   lower so the whole pill stays on screen. */
+@media (max-height: 520px) {
+  #dialogue { max-height: 60vh; }
+  #dialogue-text { font-size: 19px; min-height: 34px; }
+}
+
 #dialogue-hint {
   text-align: right;
   font-family: var(--soft);
@@ -252,15 +279,26 @@ body.lily-cursor * { cursor: none !important; }
   flex: 0 1 auto; min-height: 0;
 }
 @media (max-width: 640px) {
-  /* Phone: 12 photos in 2 columns = 6 rows, which can't fit a portrait screen. So
-     size cells off WIDTH (readable thumbnails) and let the grid SCROLL vertically,
-     with the title + hint pinned above/below. (Desktop keeps its no-scroll 4×3.) */
+  /* Narrow / portrait phone: 12 photos in 2 columns = 6 rows, which can't fit a
+     portrait screen. Size cells off WIDTH (readable thumbnails) and let the grid
+     SCROLL vertically, title + hint pinned. (Desktop keeps its no-scroll 4×3.) */
   #album { justify-content: flex-start; padding: 2.5vh 4vw; }
   #album-grid {
     --cellw: min(42vw, 220px);
     grid-template-columns: repeat(2, var(--cellw));
     flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
     align-content: start; width: 100%; padding: 2px 0 1vh;
+  }
+}
+/* Short viewport (landscape phone): wide enough for 4 columns, but too SHORT for the
+   no-scroll 4×3 to fit → it clipped. Keep 4 columns, size off height, and scroll. */
+@media (min-width: 641px) and (max-height: 520px) {
+  #album { justify-content: flex-start; padding: 2vh 4vw; }
+  #album-grid {
+    --cellw: min(22vw, 33vh, 200px);
+    grid-template-columns: repeat(4, var(--cellw));
+    flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    align-content: start; padding: 2px 0 1vh;
   }
 }
 .album-item {
