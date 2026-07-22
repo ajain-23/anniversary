@@ -441,23 +441,27 @@ body.lily-cursor * { cursor: none !important; }
 }
 /* Narrow screens: stack photo under the paper, and make the WHOLE overlay scroll so
    paper + photo + hint (which together exceed the viewport once stacked) are never
-   clipped on any side. */
+   clipped on any side. Use BLOCK flow (not flex) here: a flex column with
+   align-items:center + overflow clips the TOP of an over-tall child — block flow +
+   normal document scroll never does. */
 @media (max-width: 720px) {
   #letter {
-    justify-content: flex-start;
+    display: block;                 /* override the flex centering */
     overflow-y: auto; -webkit-overflow-scrolling: touch;
+    text-align: center;             /* centers the inline-block children */
     padding: max(16px, env(safe-area-inset-top, 0px)) 4vw
-             max(16px, env(safe-area-inset-bottom, 0px));
+             max(20px, env(safe-area-inset-bottom, 0px));
   }
   .letter-spread {
-    flex-direction: column; gap: 14px; max-width: 100%;
-    margin: auto;            /* center the block when it DOES fit; scroll when it doesn't */
+    display: block; max-width: 100%;
   }
   .letter-paper {
-    width: min(560px, 92vw); max-height: none;   /* let the overlay scroll instead */
+    display: block; margin: 0 auto 14px; text-align: left;
+    width: min(560px, 92vw); max-height: none; overflow: visible;
     padding: 22px 22px; font-size: 19px;
   }
-  #letter-photo { width: min(260px, 70vw); }
+  #letter-photo { display: inline-block; width: min(260px, 70vw); margin: 0 auto; }
+  #letter-hint { display: block; }
 }
 /* Short landscape: even less height — keep the paper text smaller so more fits. */
 @media (max-height: 520px) {
@@ -590,13 +594,18 @@ body.lily-cursor * { cursor: none !important; }
 /* Small / short screens: the perimeter photos (clamp min 96px) and the center
    sprites + text were desktop-sized, so on a phone they overran every edge and
    crowded the middle. Shrink both so the whole end screen fits. (Placed after the
-   base end-screen rules so these win by source order.) */
+   base end-screen rules so these win by source order.)
+   The perimeter photos are centered on an inset track (JS: 8.5% x / 10% y). To stay
+   fully on-screen their HALF-size must be < that inset, so keep them small; also let
+   the center column overflow gracefully rather than clip its top. */
 @media (max-width: 560px), (max-height: 520px) {
-  #end-frame .ef-photo { width: clamp(46px, 15vw, 84px); padding: 3px 3px 8px; }
-  .end-pair { gap: 10px; transform: scale(0.72); }
-  #the-end { font-size: 26px; margin-top: 16px; }
+  #end-screen { align-items: center; }
+  #end-frame .ef-photo { width: clamp(40px, 12vw, 62px); padding: 2px 2px 6px; }
+  .end-inner { max-width: 74vw; }
+  .end-pair { gap: 10px; transform: scale(0.6); }
+  #the-end { font-size: 24px; margin-top: 10px; }
   .the-end-sub { font-size: 11px; }
-  .end-heart { width: 24px; height: 24px; }
+  .end-heart { width: 22px; height: 22px; }
 }
 
 /* ---------- Wayfinder arrow (points to the next destination) ---------- */

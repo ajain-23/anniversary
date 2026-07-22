@@ -125,8 +125,11 @@ export class MemoryAlbum {
     // The photos sit centered on a track inset INSET_X/INSET_Y (as fractions of the
     // frame) from the window edges. Each photo's center is placed at an equal arc-length
     // step around that rectangle's perimeter, so spacing is uniform on every side.
-    const INSET_X = 0.085; // 8.5% in from left/right
-    const INSET_Y = 0.10;  // 10% in from top/bottom
+    // On small screens push the track further IN (photos are relatively larger vs. the
+    // viewport there) so they don't poke off the edges.
+    const small = Math.min(window.innerWidth, window.innerHeight) < 620;
+    const INSET_X = small ? 0.14 : 0.085; // in from left/right
+    const INSET_Y = small ? 0.13 : 0.10;  // in from top/bottom
     const x0 = INSET_X, x1 = 1 - INSET_X, y0 = INSET_Y, y1 = 1 - INSET_Y;
     const w = x1 - x0, h = y1 - y0;
     const perim = 2 * (w + h);
