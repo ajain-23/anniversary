@@ -391,6 +391,18 @@ body.lily-cursor * { cursor: none !important; }
   0%, 100% { transform: scaleY(0.3); }
   50%      { transform: scaleY(1); }
 }
+/* Small screens: the left HUD (counter + album) and the right "now playing" line
+   compete for the same narrow top band and overlapped. Shrink both and cap their
+   widths so they physically can't meet: the left group ends by ~46vw, the right
+   now-playing line starts no further left than ~52vw (right-aligned). */
+@media (max-width: 560px) {
+  #hud-left { top: 12px; left: 12px; gap: 4px; max-width: 46vw; }
+  #hud-left #counter { font-size: 14px; }
+  #hud-left #album-toggle { font-size: 13px; }
+  #mute-toggle { top: 12px; right: 12px; font-size: 14px; }
+  #now-playing { top: 38px; right: 12px; max-width: 48vw; font-size: 12px; gap: 5px; }
+}
+
 #verb-prompt {
   position: absolute; left: 50%; top: 62%; transform: translateX(-50%);
   color: #14101f; background: var(--gold); font-family: var(--soft); font-weight: 700;
@@ -718,8 +730,10 @@ body.touch-mode .touch-ui-btn { display: flex; }
 #lightbox-prev { left: 14px; }
 #lightbox-next { right: 14px; }
 
-/* On touch, make the "album (tab)" HUD label read as tappable + give it a finger-sized hit. */
-body.touch-mode #album-toggle { padding: 4px 2px; }
+/* On touch, make the "album (tab)" HUD label tappable with a finger-sized hit area
+   WITHOUT inflating the visible gap to the counter above: expand the target with
+   horizontal padding + a negative top margin that cancels the extra vertical height. */
+body.touch-mode #album-toggle { padding: 6px 8px; margin: -6px -8px -4px -8px; }
 
 /* ---------- Debug mode (dev tools) ---------- */
 .debug-btn {
