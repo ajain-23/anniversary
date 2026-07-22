@@ -31,7 +31,61 @@ GitHub Pages.
 > Since the sections below were written, prior sessions changed a lot. The bullets below are
 > still ~80% accurate for structure; where they conflict with this box, THIS BOX WINS.
 >
-> > ### ⚑⚑⚑⚑⚑ LATEST HANDOFF (newest — supersedes ALL boxes below)
+> > ### ⚑⚑⚑⚑⚑⚑ LATEST HANDOFF (newest — supersedes ALL boxes below, incl. the ⚑⚑⚑⚑⚑ box)
+> > **MOBILE / TOUCH SUPPORT IS NOW IMPLEMENTED** (game was previously keyboard-only). The game
+> > remains COMPLETE and DEPLOYED at **https://ajain-23.github.io/anniversary/**. Desktop behavior
+> > is unchanged — every touch path is gated on a detected coarse-pointer / first-touch, so a
+> > plain desktop never mounts any of it.
+> >
+> > **What shipped this session (touch + mobile responsiveness):**
+> > - **`src/ui/TouchControls.js`** (new; DOM overlay like CursorTrail/PeekKirby/Wayfinder,
+> >   instantiated in `main.js`, passed in `deps.touch`). Provides:
+> >   - **Fixed bottom-left virtual joystick** → `getMove()` analog vector, read by
+> >     `WorldScene.update()` alongside WASD. Shown ONLY in the world scene (body `.world-active`),
+> >     hidden on the title + during full-screen menus/moments (CSS `:has()`).
+> >   - **Tap-to-confirm**, two channels: `onConfirm(cb)` (tap-anywhere advances dialogue / memory
+> >     reveal / letter / end) and `armConfirm()`+`consumeConfirm()` (poll one-shot). A stray world
+> >     tap NEVER fires an encounter — that needs the prompt (below).
+> > - **The floating "tap to open / tap to <verb>" prompt IS the trigger** (no separate button):
+> >   `WorldScene._wirePromptTap()` makes `#verb-prompt` tappable → `armConfirm()`. Prompt copy is
+> >   device-aware (tap vs. SPACE). Wired confirm into DialogueManager, MemoryAlbum reveal, LetterUI,
+> >   and the end screen (which now also re-passes `peek`+`touch` deps on the replay loop).
+> > - **Device-aware copy** (`TouchControls._applyTouchCopy()` swaps static hint DOM strings; the
+> >   intro/title lines branch on `touch.active`). On-screen album close (✕) + lightbox prev/next/close;
+> >   tappable album toggle. Viewport locked (`user-scalable=no`, `viewport-fit=cover`) + safe-area insets.
+> > - **iOS viewport fix (important):** the canvas was sized to `100vh`/`innerHeight` (iOS Safari's
+> >   toolbar-hidden height), so the world/UI overran below the visible area (joystick could walk
+> >   Snoopy off the bottom in portrait; bottom UI hid under the toolbar). Now `#game-root` uses
+> >   `100svh` AND `main.js` syncs `game.scale.resize()` to `window.visualViewport` on
+> >   load/resize/scroll/orientation.
+> > - **Adaptive camera zoom:** `_applyZoom` targets BOTH tiles-wide (18) and tiles-tall (15), takes
+> >   the more zoomed-in — cozy on phones, unchanged on desktop. Snoopy up/down facing fixed (keep the
+> >   ANALOG move dir, not `Math.sign`, so a joystick "up" isn't read as left/right).
+> > - **Responsive layout fixes** (all in `ui.css`, desktop untouched): title fits-to-width;
+> >   dialogue shrinks + safe-area bottom on small/short screens; album scrolls on portrait (2-col)
+> >   AND short-landscape (4-col); finale letter uses block-flow scroll; end screen shrinks perimeter
+> >   photos (+ JS inset pushed inward on small screens in `MemoryAlbum.renderEndFrame`) and center
+> >   sprites/text; HUD no longer overlaps (music vs. memories) — widths capped.
+> > - **Anti-skip guards** (too-fast taps): dialogue requires a 300ms beat after the typewriter
+> >   finishes before advancing; memory reveal min-visible 250→600ms; `TouchControls` 150ms tap
+> >   dedupe. Typewriter (first tap only completes text) is still the first line of defense.
+> > - **Secret-Kirby first peek now HOLDS** on screen until its line is dismissed (was auto-retracting
+> >   before the line showed, so she could miss him). `PeekKirby.peekAndHold()`+`retract()`; later
+> >   silent peeks unchanged.
+> >
+> > **STILL OPEN (all optional — nothing blocks shipping):**
+> > 1. **6 SFX files** — `warm, memory, chime, fireworks, cheer, letter` → `public/assets/audio/sfx/`
+> >    (silent-safe without them; code already references them). See `docs/AUDIO_TODO.md`.
+> > 2. **Full live playthrough** on the deployed URL — desktop AND a real phone/iPad (portrait +
+> >    landscape). User verifies visually.
+> >
+> > **Touch design decisions (locked with the user):** fixed joystick (not dynamic/tap-to-move);
+> > the floating prompt is the interact trigger (NO dedicated corner action button — that was tried
+> > then removed); lily cursor stays auto-disabled on touch. Keep it data-driven; don't rename audio
+> > files; don't reintroduce per-zone lighting or the growth/lily motif. `MOBILE_TOUCH_SUPPORT.md`
+> > was the original plan — now largely implemented (see that file's top note).
+> >
+> > ### ⚑⚑⚑⚑⚑ PRIOR HANDOFF (superseded by the box above)
 > > **The game is COMPLETE and DEPLOYED.** Live at **https://ajain-23.github.io/anniversary/**
 > > (repo `github.com/ajain-23/anniversary`, deploys via `.github/workflows/deploy.yml` on push
 > > to `main`). Everything structural + real photos + music is in. Only optional items remain.
@@ -73,8 +127,7 @@ GitHub Pages.
 > > 1. **6 SFX files** — `warm, memory, chime, fireworks, cheer, letter` → `public/assets/audio/sfx/`.
 > >    Game is fine without them (silent). See `docs/AUDIO_TODO.md`.
 > > 2. **Full live playthrough** on the deployed URL (music/photos/flow) — user verifies visually.
-> > 3. **Mobile/touch support** — NOT playable on touch (keyboard-only). Full plan in
-> >    `docs/MOBILE_TOUCH_SUPPORT.md`. Only needed if she'll use a phone/iPad.
+> > 3. **Mobile/touch support** — ✅ DONE since this box was written (see the ⚑⚑⚑⚑⚑⚑ box above).
 > >
 > > **Workflow reminders:** `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` before npm; keep
 > > `npm run build` clean. Do NOT `pkill` vite. User verifies visually — do NOT run headless/

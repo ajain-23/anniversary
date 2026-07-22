@@ -1,9 +1,19 @@
 # Mobile / Touch Support — Findings & Action Plan
 
-> **Status: NOT STARTED (audit only).** The game is currently **desktop/keyboard-only**. This doc
-> captures a full audit of what breaks on touch (iPad / phone) and a prioritized plan to make it
-> fully touch-playable. Nothing here has been implemented yet — revisit this when we decide to add
-> touch support.
+> **Status: ✅ IMPLEMENTED.** Touch support was built (P0+P1+P2) — the plan below is now history.
+> See the ⚑⚑⚑⚑⚑⚑ box at the top of `docs/HANDOFF.md` for exactly what shipped. Summary of what
+> was actually done vs. this plan:
+> - **Input:** virtual joystick (`src/ui/TouchControls.js`) for movement; **tap-anywhere** advances
+>   dialogue / reveal / letter / end; the **floating "tap to open / tap to <verb>" prompt is the
+>   interact trigger** — we tried a dedicated corner action button, then removed it per the user.
+>   Album/lightbox got on-screen close + prev/next buttons; album toggle is tappable.
+> - **Detection:** mounts only on a coarse pointer / first touch, so desktop is visually unchanged.
+> - **Layout:** iOS viewport fixed via `100svh` + `visualViewport` sync (`main.js`); adaptive zoom;
+>   responsive fixes for title/dialogue/album/letter/end/HUD; anti-skip tap guards.
+> - **Not needed / skipped from the plan below:** the lily cursor stays auto-disabled on touch
+>   (no on-touch cursor); no dynamic/tap-to-move joystick (fixed joystick chosen).
+>
+> The original audit + plan is preserved below for reference.
 
 ## TL;DR verdict
 The game is **not playable on an iPad or phone as-is**. Rendering and scaling are done well
