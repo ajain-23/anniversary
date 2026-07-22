@@ -1009,13 +1009,20 @@ export class WorldScene extends Phaser.Scene {
     this.peeking = true;
     const firstTime = !this.firstPeekDone;
     this.firstPeekDone = true;
-    this.peek.peek().then(async () => {
-      if (firstTime) {
+    if (firstTime) {
+      // First peek carries the guide's line — hold Kirby on screen the WHOLE time the
+      // line is up (she reads it WITH him visible), then retract once she dismisses it,
+      // so she can't miss him.
+      this.peek.peekAndHold().then(async () => {
         await this.dialogue.show("Hm? ...Don't mind the bola. It's just your super secret super admirer.", "guide");
         this.dialogue.hide();
-      }
-      this.peeking = false;
-    });
+        await this.peek.retract();
+        this.peeking = false;
+      });
+    } else {
+      // Later peeks are silent + auto-retract as before.
+      this.peek.peek().then(() => { this.peeking = false; });
+    }
   }
 
   // ---------- verbs ----------
