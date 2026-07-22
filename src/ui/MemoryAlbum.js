@@ -54,9 +54,10 @@ export class MemoryAlbum {
       const shownAt = performance.now();
       let unsubTouch = null;
       const dismiss = () => {
-        // Small guard so the tap/press that finished dialogue doesn't instantly skip
-        // the reveal (mirrors the dialogue 250ms carryover guard).
-        if (performance.now() - shownAt < 250) return;
+        // Anti-skip: a memory reveal is a "please look at this" beat, so require a
+        // slightly longer minimum on-screen time before a tap/press can dismiss it
+        // (also absorbs the carryover tap from the dialogue that preceded it).
+        if (performance.now() - shownAt < 600) return;
         window.removeEventListener("keydown", onKey);
         if (unsubTouch) unsubTouch();
         this.reveal.classList.add("hidden"); resolve();

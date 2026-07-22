@@ -27,6 +27,11 @@
 
 const DEADZONE = 0.18;     // fraction of the stick radius ignored (prevents drift)
 const STICK_RADIUS = 56;   // px, how far the knob travels from the base center
+// Minimum time between two ACCEPTED tap-confirms. Short — this only collapses a
+// genuine duplicate/double event into one tap; the real anti-skip (you must have SEEN
+// a line/reveal for long enough) lives per-screen as a min-visible-time guard, so that
+// "tap to finish the typewriter, then tap to advance" still feels responsive.
+const TAP_COOLDOWN_MS = 150;
 
 export class TouchControls {
   constructor() {
@@ -34,6 +39,7 @@ export class TouchControls {
     this._move = { x: 0, y: 0 }; // current normalized joystick vector
     this._confirmSubs = new Set();
     this._confirmPending = false; // one-shot flag for consumeConfirm()
+    this._lastConfirmAt = 0;      // timestamp of the last accepted tap-confirm
     this._stickId = null;         // active pointerId owning the joystick
     this._layer = null;
     this._built = false;
@@ -111,7 +117,12 @@ export class TouchControls {
   // Notify the confirm subscribers (the currently-shown overlay's advance/dismiss).
   // Fired by tap-anywhere; does NOT arm the poll one-shot (that's armConfirm(), tied
   // to tapping the prompt) so a stray world tap can't fire an encounter.
+  // Debounced: a second tap within TAP_COOLDOWN_MS of an accepted one is dropped, so
+  // rushed multi-taps can't skip past lines / reveals / the letter.
   _fireConfirm() {
+    const now = performance.now();
+    if (now - this._lastConfirmAt < TAP_COOLDOWN_MS) return;
+    this._lastConfirmAt = now;
     for (const cb of [...this._confirmSubs]) { try { cb(); } catch {} }
   }
 
