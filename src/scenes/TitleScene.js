@@ -147,7 +147,7 @@ export class TitleScene extends Phaser.Scene {
     this._makeAtmosphere(width, height, s);
 
     // Title: fades + rises in, with a gently breathing gold glow.
-    const title = this.add.text(width / 2, height / 2 - 110 * s, "A Dream Come True", {
+    const title = this.add.text(width / 2, height / 2 - 110 * s, "Había Una Vez…", {
       fontFamily: "VT323, monospace", fontSize: px(120), color: "#ffd98a",
     }).setOrigin(0.5).setShadow(0, 0, "#ffb84d", 14 * s);
     const sub = this.add.text(width / 2, height / 2 - 14 * s, "Isa & Ayush — est. July 23, 2025", {

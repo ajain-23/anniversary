@@ -126,7 +126,7 @@ export const ENCOUNTERS = {
       { sfx: "chime" },
       { say: "...'I love you.' I said it. I didn't plan to — it just felt true, so I said it. and I remember the look on his face.", who: "memory" },
       { say: "He froze. Then he said it back like he'd been holding his breath since summer. ...I don't think he's ever been that relieved — or that lucky. You went first. You're the reason he ever found the words at all.", who: "guide" },
-      { memory: { id: "iloveyou", photos: [{ src: P(6), caption: "three little words – december 5, 2025" }] } },
+      { memory: { id: "iloveyou", photos: [{ src: P(6), caption: "three little words" }] } },
       { say: "That was the day it stopped being *new* and started being *real*.\n...Come on. There's more.", who: "guide" },
       { gate: "g3" },
     ],
