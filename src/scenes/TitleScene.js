@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { WorldScene } from "./WorldScene.js"; // for WorldScene.queueAssets (background warm-up)
 
 export class TitleScene extends Phaser.Scene {
   constructor() { super("title"); }
@@ -23,6 +24,28 @@ export class TitleScene extends Phaser.Scene {
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => { if (this.scene.isActive()) this._layout(); });
     }
+
+    this._warmWorldAssets();
+  }
+
+  // Preload the WORLD's assets in the background while the title is showing, so clicking
+  // Continue / New Game mounts the world with no download latency (the big tilesets + NPC
+  // sheets used to load only inside WorldScene.preload, i.e. AFTER the click). Phaser's
+  // loader no-ops keys already in cache, so WorldScene.preload later just finds them ready.
+  // Guarded + best-effort: any hiccup here must never block the title. Deferred one tick so
+  // it never competes with the title's own first paint.
+  _warmWorldAssets() {
+    if (this._warmed) return;
+    this._warmed = true;
+    this.time.delayedCall(0, () => {
+      try {
+        WorldScene.queueAssets(this.load);
+        if (this.load.list.size > 0) this.load.start(); // idle after preload; kick off the batch
+      } catch (e) {
+        // Non-fatal: WorldScene.preload will load anything missing on entry as before.
+        console.warn("[title] world asset warm-up skipped:", e);
+      }
+    });
   }
 
   // Generate the small soft "dust/star" dot texture once (a radial-gradient blob).

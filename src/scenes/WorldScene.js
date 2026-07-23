@@ -241,44 +241,52 @@ export class WorldScene extends Phaser.Scene {
   }
 
   preload() {
+    WorldScene.queueAssets(this.load);
+  }
+
+  // Queue EVERY world asset onto a Phaser loader. Factored out so the TitleScene can
+  // WARM the cache in the background while the title is showing — Phaser's loader skips
+  // keys already in cache, so clicking Continue then mounts the world with no download
+  // latency. Keep this the single source of truth for what the world needs to load.
+  static queueAssets(load) {
     // The delivered artist map + its two tilesets (copied into public/assets/map/).
-    this.load.tilemapTiledJSON("world", "assets/map/world.tmj");
-    this.load.image(TS_MODERN, "assets/map/tilesets/Modern_Exteriors_Complete_Tileset.png");
-    this.load.image(TS_VEHICLES, "assets/map/tilesets/10_Vehicles_16x16.png");
+    load.tilemapTiledJSON("world", "assets/map/world.tmj");
+    load.image(TS_MODERN, "assets/map/tilesets/Modern_Exteriors_Complete_Tileset.png");
+    load.image(TS_VEHICLES, "assets/map/tilesets/10_Vehicles_16x16.png");
     // Cute envelope sprite used as the encounter marker.
-    this.load.image("marker_letter", "assets/sprites/letter.png");
+    load.image("marker_letter", "assets/sprites/letter.png");
     // Isa = Snoopy: the walk-cycle sheet (snoopy.png). Loaded as a plain image;
     // its 12 walk frames are carved out + turned into 4-dir anims in create()
     // (_makeSnoopyFrames). Also reused for the E11 crowd.
-    this.load.image("snoopy", "assets/sprites/snoopy.png");
+    load.image("snoopy", "assets/sprites/snoopy.png");
     // Full-body Kirby standing at Home = the finale marker (kirby.png, dedicated
     // sprite — barely-padded 514x412; FINALE_W below is tuned against its opaque
     // bbox). The ambient/edge peek uses the heart-topped secretkirby.png (whose
     // flat bottom hugs a screen edge) — see ui/PeekKirby.js, a DOM overlay.
-    this.load.image("marker_kirby", "assets/sprites/kirby.png");
+    load.image("marker_kirby", "assets/sprites/kirby.png");
     // Graduation walk cycle (E10): 5x5 grid of 256px cells, right-facing grad-Snoopy.
-    this.load.spritesheet("snoopygradwalk", "assets/sprites/snoopygradwalk.png",
+    load.spritesheet("snoopygradwalk", "assets/sprites/snoopygradwalk.png",
       { frameWidth: GRADWALK_CELL, frameHeight: GRADWALK_CELL });
     // Static cap-and-gown Snoopy (stands center after the walk).
-    this.load.image("snoopygrad", "assets/sprites/snoopygrad.png");
+    load.image("snoopygrad", "assets/sprites/snoopygrad.png");
     // Animated confetti burst (8x8 grid of 512px cells).
-    this.load.spritesheet("confetti", "assets/sprites/confetti.png",
+    load.spritesheet("confetti", "assets/sprites/confetti.png",
       { frameWidth: CONFETTI_CELL, frameHeight: CONFETTI_CELL });
     // Ambient NPC sheets (LimeZu). Loaded as plain images; frames are carved + turned into
     // idle/walk 4-dir anims per skin tone in create() (_makeNpcFrames).
-    for (let i = 1; i <= NPC_SHEETS; i++) this.load.image(`npc${i}`, `assets/sprites/npc/NPC_${i}.png`);
+    for (let i = 1; i <= NPC_SHEETS; i++) load.image(`npc${i}`, `assets/sprites/npc/NPC_${i}.png`);
     // Positive emote bubbles (4-frame 16x16 pop-ins) shown when Snoopy nears an NPC.
-    for (const e of EMOTES) this.load.spritesheet(e.key, EMOTE_DIR + e.file, { frameWidth: 16, frameHeight: 16 });
+    for (const e of EMOTES) load.spritesheet(e.key, EMOTE_DIR + e.file, { frameWidth: 16, frameHeight: 16 });
     // Pond-reflection cutscene: three front-facing Snoopy poses. Their white background can't be
     // keyed out (it shares Snoopy's own white pixels), so startCutscene()/_makeReflection() render
     // them with a soft circular vignette mask + MULTIPLY blend to read as a reflection in water.
-    for (const n of [1, 2, 3]) this.load.image(`snoopy_ft${n}`, `assets/sprites/snoopy_ft${n}.png`);
+    for (const n of [1, 2, 3]) load.image(`snoopy_ft${n}`, `assets/sprites/snoopy_ft${n}.png`);
     // Animated fountain: 2x3-tile (32x48) frames, 8 frames across a 256x48 sheet.
-    this.load.spritesheet("fountain", "assets/map/tilesets/animated/Fountain_16x16.png",
+    load.spritesheet("fountain", "assets/map/tilesets/animated/Fountain_16x16.png",
       { frameWidth: 32, frameHeight: 48 });
     // Fireworks (E7): rocket-trail + explosion sprite sheets. Per-sheet frame sizes (measured).
     for (const s of [...FIREWORK_EXPLOSIONS, ...FIREWORK_ROCKETS]) {
-      this.load.spritesheet(s.key, FW_DIR + s.file, { frameWidth: s.fw, frameHeight: s.fh });
+      load.spritesheet(s.key, FW_DIR + s.file, { frameWidth: s.fw, frameHeight: s.fh });
     }
   }
 
@@ -357,6 +365,13 @@ export class WorldScene extends Phaser.Scene {
       this.setInputLocked(true);
       this.introRunning = true;
       this._playIntro();
+    } else {
+      // CONTINUE (returning player): resume the song that was carrying the walk when she
+      // last left — i.e. the music of her most recently completed encounter — instead of
+      // the title track. Derived from saved progress (deterministic mixtape), restarted
+      // from the top. TitleScene already started "title"; swap to the resume key here
+      // (playMusic no-ops if it's the same key, e.g. she left during the opening walk).
+      this.audio?.playMusic(this._resumeMusicKey());
     }
 
     // Wayfinder arrow: points to the next story-order encounter so she's never lost.
@@ -381,6 +396,22 @@ export class WorldScene extends Phaser.Scene {
       if (pos) return pos;
     }
     return null;
+  }
+
+  // Music key to resume on Continue: the song of the LAST completed encounter (that song
+  // carries the walk after each encounter until the next one triggers). Walk STORY_ORDER
+  // backward for the furthest completed encounter and read its {music:"NN"} step. Falls
+  // back to "title" if that encounter has no music step (the opener `pasta`) or nothing's
+  // been completed yet — matching the opening-walk track.
+  _resumeMusicKey() {
+    for (let i = STORY_ORDER.length - 1; i >= 0; i--) {
+      const id = STORY_ORDER[i];
+      if (!this.completed.has(id)) continue;
+      const enc = ENCOUNTERS[id];
+      const musicStep = enc?.steps?.find((s) => s.music);
+      return musicStep ? musicStep.music : "title";
+    }
+    return "title";
   }
 
   // Tick the wayfinder each frame: hide during dialogue/intro or when nothing's left; else
