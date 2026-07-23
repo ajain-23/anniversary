@@ -292,7 +292,16 @@ export class TitleScene extends Phaser.Scene {
 
   _start() {
     this.deps.audio?.unlock();
-    this.deps.audio?.playMusic("title");
+    // Only start the TITLE song when the world will ALSO open on the title track — i.e. a
+    // NEW game (intro not yet completed; the opening walk uses "title"). On CONTINUE, the
+    // world immediately starts the resume song (WorldScene._resumeMusicKey), so playing
+    // "title" here would crossfade two songs over each other for ~1.8s (the "weird sound"
+    // on load). Let the world own the music in that case.
+    let completedIntro = false;
+    try {
+      completedIntro = JSON.parse(localStorage.getItem("rm_completed") || "[]").includes("intro");
+    } catch {}
+    if (!completedIntro) this.deps.audio?.playMusic("title");
     this.scene.start("world", this.deps);
   }
 }
