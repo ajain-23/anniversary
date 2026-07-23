@@ -1670,7 +1670,10 @@ export class WorldScene extends Phaser.Scene {
     }
     this.activeEncounter = near;
     if (near && !this.runner.running) {
-      this._showPrompt(this.touch && this.touch.active ? "tap to open" : "SPACE to open");
+      // Finale (Kirby at Home) gets a special verb: "<3" instead of "open".
+      const verb = near.id === "finale" ? "<3" : "open";
+      const onTouch = this.touch && this.touch.active;
+      this._showPrompt(onTouch ? `tap to ${verb}` : `SPACE to ${verb}`);
       const keyPress = Phaser.Input.Keyboard.JustDown(this.spaceKey);
       const tapPress = this.touch && this.touch.consumeConfirm();
       if (keyPress || tapPress) { this._hidePrompt(); this.runner.play(near); }
