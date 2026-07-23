@@ -237,14 +237,22 @@ export class TitleScene extends Phaser.Scene {
     let y = height / 2 + 70 * s;
     mkBtn(y, "Continue", () => this._start()); y += 80 * s;
     mkBtn(y, "New Game", () => this._confirmReset());
-    this.confirmText = this.add.text(width / 2, height - 50 * s, "", {
+    this.confirmText = this.add.text(width / 2, height - 64 * s, "", {
       fontFamily: "Quicksand, sans-serif", fontSize: px(18), color: "#ff9ecb",
-    }).setOrigin(0.5);
+      align: "center",
+      // Wrap to the viewport width so it never overflows the screen edges on a narrow
+      // phone (it was a single un-wrapped line before, cut off in portrait). Anchored a
+      // little higher than before to give the now-multiline text bottom headroom.
+      wordWrap: { width: width * 0.9 },
+    }).setOrigin(0.5, 1);
   }
 
   _confirmReset() {
     if (this._armed) { this._reset(); this._start(); return; }
-    this.confirmText.setText("Start over? This clears all memories. Click New Game again to confirm.");
+    // Device-aware verb: "Tap" on touch, "Click" on desktop.
+    const onTouch = !!(this.deps && this.deps.touch && this.deps.touch.active);
+    const again = onTouch ? "Tap" : "Click";
+    this.confirmText.setText(`Start over? This clears all memories. ${again} New Game again to confirm.`);
     this._armed = true;
     this.time.delayedCall(4000, () => { this._armed = false; this.confirmText.setText(""); });
   }

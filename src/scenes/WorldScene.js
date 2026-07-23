@@ -389,14 +389,21 @@ export class WorldScene extends Phaser.Scene {
     const wf = this.wayfinder;
     if (!wf) return;
     if (this.runner.running || this.introRunning || this.inputLocked) { wf.hide(); return; }
+    const s = this._wayTargetScreen();
+    if (!s) { wf.hide(); return; }
+    wf.pointTo(s.sx, s.sy);
+  }
+
+  // Convert the current wayfinder target tile → screen px (scroll + zoom aware). Returns null
+  // when there's no target left. Shared by the per-frame tick and the intro flourish.
+  _wayTargetScreen() {
     const pos = this._wayTarget();
-    if (!pos) { wf.hide(); return; }
+    if (!pos) return null;
     const cam = this.cameras.main;
-    // world px (tile center) → screen px (account for scroll + zoom).
     const worldX = pos.x * TILE + TILE / 2, worldY = pos.y * TILE + TILE / 2;
     const sx = (worldX - cam.worldView.x) * cam.zoom;
     const sy = (worldY - cam.worldView.y) * cam.zoom;
-    wf.pointTo(sx, sy);
+    return { sx, sy };
   }
 
   // Replay an encounter on demand (used by DebugMode): TELEPORT the player to a walkable tile
@@ -988,9 +995,11 @@ export class WorldScene extends Phaser.Scene {
     await this.dialogue.show("You don't remember anything right now. That's alright – that's what this journey is for.", "guide");
     // Controls copy adapts to the input device (keyboard vs. touch).
     const isTouch = !!(this.touch && this.touch.active);
+    // Touch: the joystick is hidden during dialogue (input-locked), so it's referenced in
+    // FUTURE tense; it appears once she can walk. Keyboard keys have no such constraint.
     const controlsLine = isTouch
-      ? "Go on. Use the stick on the left to walk. The small golden arrow will help guide you to your memories. Every memory you collect will be added to your album (top left), which you can open anytime."
-      : "Go on. Explore with the W A S D keys. The small golden arrow will help guide you to your memories. Every memory you collect will be added to your album (top left), which you can check anytime with the TAB key.";
+      ? "Go on. A stick will appear on the left to walk. A golden arrow will guide you to your memories, each saved to your album (top left). Open it anytime."
+      : "Go on. Explore with the W A S D keys. A golden arrow will guide you to your memories, each saved to your album (top left). Open it anytime with TAB.";
     await this.dialogue.show(controlsLine, "guide");
     this.dialogue.hide();
     // The first secret-Kirby showing is the first timer peek (carries the line).
@@ -999,6 +1008,16 @@ export class WorldScene extends Phaser.Scene {
     this.markComplete("intro");
     this.introRunning = false;
     this.setInputLocked(false);
+
+    // Discoverability: the moment control is handed over, make the golden arrow announce
+    // itself — appear big at center, pulse, then glide to its resting edge spot — so the
+    // "small golden arrow will help guide you" line she just read has an obvious payoff.
+    // pointTo no-ops while the flourish runs (wayfinder.suspended), so the per-frame tick
+    // won't fight it. Guarded so a missing target just skips it silently.
+    const introTarget = this._wayTargetScreen();
+    if (introTarget && this.wayfinder) {
+      this.wayfinder.introFlourish(introTarget.sx, introTarget.sy);
+    }
   }
 
   // ---------- secret Kirby peek ----------
@@ -1435,7 +1454,14 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // ---------- state ----------
-  setInputLocked(v) { this.inputLocked = v; }
+  setInputLocked(v) {
+    this.inputLocked = v;
+    // Mirror the walk-lock onto <body> so CSS can hide the touch joystick whenever she
+    // can't move (dialogue, verbs, cutscenes, fireworks, gradWalk, intro) — a visible-but-
+    // inert stick reads as broken on a phone. inputLocked is the single walk gate (see
+    // update()), and EventRunner/_playIntro toggle it, so this covers every locked moment.
+    document.body.classList.toggle("input-locked", !!v);
+  }
   markComplete(id) {
     this.completed.add(id);
     try { localStorage.setItem("rm_completed", JSON.stringify([...this.completed])); } catch {}

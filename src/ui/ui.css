@@ -634,6 +634,15 @@ body.lily-cursor * { cursor: none !important; }
   0%, 100% { filter: drop-shadow(0 0 4px rgba(255, 217, 138, 0.45)); }
   50%      { filter: drop-shadow(0 0 9px rgba(255, 217, 138, 0.85)); }
 }
+/* Intro flourish: a brighter, faster glow while the arrow is big at center + gliding out,
+   so it reads as prominent. Removed once it settles into the normal tracking arrow. */
+#wayfinder.flourish {
+  animation: wayfinder-flourish .6s ease-in-out infinite;
+}
+@keyframes wayfinder-flourish {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 217, 138, 0.7)); }
+  50%      { filter: drop-shadow(0 0 22px rgba(255, 217, 138, 1)); }
+}
 
 /* ---------- Touch controls (phone / iPad) ---------- */
 /* Mounted only once a touch / coarse-pointer device is detected (see
@@ -654,7 +663,12 @@ body.lily-cursor * { cursor: none !important; }
 body.world-active #touch-layer { opacity: 1; }
 body.world-active #touch-layer > * { pointer-events: auto; }
 
-/* ...but still hide it whenever a full-screen menu/moment is up, even in-world. */
+/* ...but still hide it whenever a full-screen menu/moment is up, even in-world.
+   Also hide during any input-locked moment (dialogue / verb prompts / cutscenes /
+   fireworks / gradWalk / intro): WorldScene.setInputLocked toggles body.input-locked,
+   so a visible-but-inert joystick never shows while she can't walk. #touch-layer has
+   no opacity transition, so this hide/show is instant. */
+body.world-active.input-locked #touch-layer,
 body.world-active:has(#album:not(.hidden)) #touch-layer,
 body.world-active:has(#lightbox:not(.hidden)) #touch-layer,
 body.world-active:has(#letter:not(.hidden)) #touch-layer,
@@ -663,6 +677,7 @@ body.world-active:has(#memory-reveal:not(.hidden)) #touch-layer,
 body.world-active:has(#intro-black:not(.hidden)) #touch-layer {
   opacity: 0;
 }
+body.world-active.input-locked #touch-layer > *,
 body.world-active:has(#album:not(.hidden)) #touch-layer > *,
 body.world-active:has(#lightbox:not(.hidden)) #touch-layer > *,
 body.world-active:has(#letter:not(.hidden)) #touch-layer > *,
