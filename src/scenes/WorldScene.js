@@ -1104,6 +1104,9 @@ export class WorldScene extends Phaser.Scene {
   // so wider screens see more repeats of the same pattern/spacing.
   fireworks() {
     return new Promise((resolve) => {
+      // Fire the boom SFX immediately as the sequence starts (not at first detonation) — the
+      // rocket rise otherwise delays it. Sound leads the visuals, matching the user's ask.
+      this.audio?.sfx("fireworks");
       const xMaxTile = this.mapW - 1 - FW_X_RIGHT_MARGIN_TILES;
       const baseY = FW_Y_TILE * TILE + TILE / 2;
 

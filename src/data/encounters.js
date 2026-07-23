@@ -106,7 +106,7 @@ export const ENCOUNTERS = {
       { music: "05" },
       { say: "Fourth of July. Your second date. Picnic and fireworks. He was so smitten, he could hardly eat, hardly even think. The fireworks in his heart were louder than the ones in the sky.", who: "guide" },
       { verb: "watch", label: "watch the sky" },
-      { fireworks: true }, { sfx: "fireworks" },
+      { fireworks: true },  // boom SFX now plays inside fireworks() on the first detonation (in sync)
       { say: "Yeah, he was a little strange. One time, he randomly sent me a picture of his burrito bowl...", who: "memory" },
       { say: "A few weeks later, against all odds, first kiss. His heart rate shot through the roof. He had no idea what he was doing. But you saved him. And a few weeks after that, you made it official.", who: "guide" },
       { say: "He still is a little strange. But... I think I'll keep him.", who: "memory" },
