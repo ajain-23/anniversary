@@ -44,7 +44,7 @@ export const ENCOUNTERS = {
       { say: "...that's me?! Am I crazy, or am I actually just that cute?", who: "memory" },
       { say: "No, you're not crazy. You are absolutely stunning. Crazy face card AND body tea!", who: "guide" },
       { memory: { id: "pond", photos: [{ src: P(1), caption: "the prettiest girl to ever live" }] } },
-      { say: "If you can believe it, behind that beauty is an incredible person. The love of someone's life. Keep exploring and you'll see. There's so much more of you up ahead.", who: "guide" },
+      { say: "If you can believe it, behind that beauty is an incredible person. The love of someone's life. Keep exploring and you'll see. There's so much more up ahead.", who: "guide" },
       { endCutscene: true },
     ],
   },
