@@ -52,7 +52,6 @@ export class AudioManager {
     this.sfxSrc = {
       warm: `${B}assets/audio/sfx/warm.mp3`,
       chime: `${B}assets/audio/sfx/chime.mp3`,
-      squirrel: `${B}assets/audio/sfx/squirrel.mp3`,
       fireworks: `${B}assets/audio/sfx/fireworks.mp3`,
       cheer: `${B}assets/audio/sfx/cheer.mp3`,
       letter: `${B}assets/audio/sfx/letter.mp3`,
