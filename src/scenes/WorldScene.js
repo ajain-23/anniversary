@@ -1670,8 +1670,10 @@ export class WorldScene extends Phaser.Scene {
     }
     this.activeEncounter = near;
     if (near && !this.runner.running) {
-      // Finale (Kirby at Home) gets a special verb: "<3" instead of "open".
-      const verb = near.id === "finale" ? "<3" : "open";
+      // Finale (Kirby at Home) gets a special verb: a heart glyph instead of "open".
+      // U+FE0E (text variation selector) requests the MONOCHROME heart so it takes the
+      // prompt's dark text color on the gold pill, not a colored emoji that'd clash.
+      const verb = near.id === "finale" ? "\u2764\uFE0E" : "open";
       const onTouch = this.touch && this.touch.active;
       this._showPrompt(onTouch ? `tap to ${verb}` : `SPACE to ${verb}`);
       const keyPress = Phaser.Input.Keyboard.JustDown(this.spaceKey);
